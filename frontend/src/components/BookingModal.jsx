@@ -22,6 +22,8 @@ const BookingModal = ({ open, preset, onClose }) => {
     participants: 1,
     hotel: "",
     notes: "",
+    partner: false,
+    partner_name: "",
   });
 
   useEffect(() => {
@@ -37,7 +39,7 @@ const BookingModal = ({ open, preset, onClose }) => {
       await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), lang });
       toast.success(t.toast.success);
       onClose();
-      setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "" });
+      setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "" });
     } catch (err) {
       toast.error(t.toast.error);
     } finally {
@@ -129,6 +131,30 @@ const BookingModal = ({ open, preset, onClose }) => {
                 <div>
                   <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">{t.booking.notes}</label>
                   <textarea data-testid="booking-input-notes" rows={3} value={form.notes} onChange={set("notes")} className={`${inputCls} resize-none`} />
+                </div>
+                <div className="rounded-xl border border-white/10 bg-deep/60 p-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      data-testid="booking-checkbox-partner"
+                      type="checkbox"
+                      checked={form.partner}
+                      onChange={(e) => setForm((f) => ({ ...f, partner: e.target.checked }))}
+                      className="mt-0.5 h-4 w-4 accent-[#00F0FF]"
+                    />
+                    <span>
+                      <span className="block text-sm text-white">{t.booking.partner}</span>
+                      <span className="block text-xs text-slate-500">{t.booking.partnerHint}</span>
+                    </span>
+                  </label>
+                  {form.partner && (
+                    <input
+                      data-testid="booking-input-partner-name"
+                      value={form.partner_name}
+                      onChange={set("partner_name")}
+                      className={`${inputCls} mt-3`}
+                      placeholder={t.booking.partnerName}
+                    />
+                  )}
                 </div>
                 <motion.button
                   data-testid="booking-form-submit"

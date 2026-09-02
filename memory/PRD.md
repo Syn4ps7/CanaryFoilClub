@@ -32,6 +32,15 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Motion premium : lenis smooth scroll, scroll-reveals staggered, micro-interactions hover, marquee éditorial
 - data-testid sur tous les éléments interactifs
 
+## Implemented (2026-06) — Admin Dashboard /admin
+- Auth : compte admin unique défini dans backend/.env (ADMIN_EMAIL / ADMIN_PASSWORD), seedé en Mongo `users` avec hash bcrypt au démarrage, JWT HS256 12h (Bearer, localStorage `cfc_admin_token`), brute force 5 échecs → 429 pendant 15 min (clé = email). `/app/backend/auth.py`
+- Routes protégées : GET /api/auth/me, GET /api/bookings, GET /api/admin/stats, PATCH /api/admin/bookings/{id} {status|partner|partner_name}
+- KPIs (`/app/backend/stats.py`) : CA jour/mois/total (statuts confirmed+completed uniquement, basé sur la date de session), sessions, taux d'occupation jour/mois (3 planches × 4 créneaux = 12 slots/jour ; discovery=min(n,3) slots, duo=2, testdrive=1, corporate=9, drone=0), répartition CA B2C / Corporate 890 € / Options Drone, commissions partenaires 20 % sur réservations `partner=true`, 10 dernières réservations
+- Grille tarifaire : Discovery 145 €×pers, Duo 280 € forfait, Drone 50 €×pers, Corporate 890 € forfait, Test Drive 0 €
+- Frontend : react-router (`/` Landing, `/admin`), AdminLogin, AdminDashboard (KpiCard, RevenueSplit, BookingsTable avec select statut + toggle partenaire), design Luxury Oceanic, French-only
+- Formulaire public : case « Réservation apportée par un partenaire » + nom du partenaire (FR/EN/ES)
+- Testé : testing_agent iteration_1 (backend 10/10 après fix lockout, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)
@@ -42,6 +51,6 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - P0 : Fournir le VRAI email du propriétaire pour activer les alertes (OWNER_EMAIL dans backend/.env) + vraies coordonnées WhatsApp/Instagram
 - P1 : Paiement Stripe réel sur les expériences (clé test dispo dans le pod)
 - P1 : Notification WhatsApp (Twilio) en plus de l'email
-- P1 : Page admin ou listing privé des demandes de réservation
+- P1 : Admin — changement de mot de passe depuis le dashboard, export CSV, filtre/recherche sur toutes les réservations, alerte email au client lors de la confirmation
 - P2 : Galerie Instagram / avis clients
 - P2 : SEO multilingue (hreflang, métadonnées par langue), mentions légales réelles

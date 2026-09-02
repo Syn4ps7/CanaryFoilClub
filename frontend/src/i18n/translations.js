@@ -123,6 +123,9 @@ export const translations = {
       participants: "Participants",
       hotel: "Hôtel / Lieu de séjour",
       notes: "Demandes spéciales",
+      partner: "Réservation apportée par un partenaire",
+      partnerHint: "Hôtel, concierge ou agence vous a recommandé ?",
+      partnerName: "Nom du partenaire (hôtel, concierge…)",
       submit: "Envoyer ma demande",
       submitting: "Envoi…",
       options: {
@@ -269,6 +272,9 @@ export const translations = {
       participants: "Participants",
       hotel: "Hotel / Where you're staying",
       notes: "Special requests",
+      partner: "Booking referred by a partner",
+      partnerHint: "Recommended by your hotel, concierge or agency?",
+      partnerName: "Partner name (hotel, concierge…)",
       submit: "Send my request",
       submitting: "Sending…",
       options: {
@@ -415,6 +421,9 @@ export const translations = {
       participants: "Participantes",
       hotel: "Hotel / Alojamiento",
       notes: "Peticiones especiales",
+      partner: "Reserva recomendada por un partner",
+      partnerHint: "¿Te ha recomendado tu hotel, conserje o agencia?",
+      partnerName: "Nombre del partner (hotel, conserje…)",
       submit: "Enviar mi solicitud",
       submitting: "Enviando…",
       options: {

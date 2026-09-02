@@ -1,0 +1,38 @@
+{
+  "summary": "Full backend + frontend testing of Canary Foil Club admin dashboard and public site. 9/10 backend tests pass; only the brute-force lockout test failed due to a real backend bug (identifier uses request.client.host which varies across k8s ingress proxy IPs). Frontend admin dashboard fully functional: login, wrong-password error, all KPIs, revenue split, recent bookings, status change with toast, partner toggle, session persistence across reload, and logout. Landing page loads, language switcher works, booking modal opens, partner checkbox reveals partner_name input, and public booking submission succeeds (modal closes, backend confirms 200 + amount=290 for discovery x2).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/login", "issue": "Brute-force lockout never triggers behind the k8s ingress. auth.py uses identifier=`{request.client.host}:{email}` but the FastAPI request.client.host is the upstream proxy IP which rotates between at least two pods (10.49.134.130 and 10.49.134.134 observed in logs), so no single IP accumulates 5 failures and the 6th attempt still returns 401 instead of 429. Fix: parse X-Forwarded-For (first hop) or use the email alone as the lockout key.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Landing hero", "issues": ["Intro overlay lasts ~1.9s and blocks any hero button click during that window; automated/E2E flows must wait for it to finish. Consider setting pointer-events:none on the intro to avoid false-negative clicks."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix lockout identifier in /app/backend/auth.py to survive k8s ingress (use X-Forwarded-For or email-only key). This is the only failing backend test.",
+    "OPTIONAL: The review request referenced data-testids `lang-switch-{lg}` and `booking-submit-button`; actual ids are `lang-switcher-{lg}` and `booking-form-submit`. Not a bug, just a doc mismatch."
+  ],
+  "critical_code_review_comments": [
+    "auth.py lockout key is `request.client.host:email`; behind ingress the client host is the proxy IP and can vary — brute-force protection is effectively disabled. Use X-Forwarded-For header or drop IP from the key.",
+    "server.py has @app.on_event startup/shutdown (deprecated in FastAPI); consider migrating to lifespan handlers.",
+    "server.py _normalize() overwrites b['amount'] on every read — fine for consistency but means the stored amount field is ignored. Confirm this is intentional (recomputes price on read).",
+    "seed_admin will silently reset password to ADMIN_PASSWORD on every backend restart — acceptable per requirement, but ensure ADMIN_PASSWORD is never committed with a $ that gets shell-expanded in .env."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "90% (9/10)", "frontend": "100% of tested flows"},
+  "test_credentials": "admin@canaryfoilclub.com / Foil!Club2026 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created 2 TEST_ bookings via POST /api/booking (delivered@resend.dev) — visible in dashboard. Not cleaned up (bookings collection has no delete endpoint).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend test suite at /app/backend/tests/backend_test.py covers auth, bookings list, admin stats math, PATCH edge cases (401/400/404), and public booking with partner. The only failing test is test_login_lockout_after_5 — root cause and fix documented above. Frontend admin has correct testids: admin-login-card, admin-login-email/password/submit, admin-login-error, admin-dashboard, kpi-revenue-{today,month,total}, kpi-commissions, kpi-occupancy-{today,month}, revenue-split, revenue-offer-{b2c,corporate,drone}, booking-row-{id}, booking-status-select-{id}, booking-partner-toggle-{id}, admin-logout. Public booking testids differ slightly from spec: use `lang-switcher-{lg}` (not lang-switch-*), `booking-form-submit` (not booking-submit-button). Intro overlay blocks clicks for 1.9s after load.",
+  "rca_of_the_issue": "Lockout uses `f\"{request.client.host}:{email}\"` as identifier (auth.py:72). Behind the Kubernetes ingress/nginx, request.client.host is the upstream proxy IP which rotates between backend pod replicas, producing distinct identifiers for consecutive attempts from the same real client. Reproduction: POST 6x /api/auth/login with wrong password + fixed email → returns 401 every time instead of 429 on the 6th. Mitigation: extract X-Forwarded-For first entry (`request.headers.get('x-forwarded-for','').split(',')[0].strip()`) with fallback to request.client.host, or key lockout by email only."
+}
