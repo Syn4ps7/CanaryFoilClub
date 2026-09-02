@@ -33,6 +33,7 @@ class BookingCreate(BaseModel):
     participants: int = Field(ge=1, le=12)
     hotel: Optional[str] = None
     notes: Optional[str] = None
+    lang: str = "fr"
 
 
 class Booking(BookingCreate):
@@ -52,11 +53,15 @@ async def root():
 async def create_booking(input: BookingCreate):
     if input.experience not in EXPERIENCES:
         input.experience = "discovery"
+    if input.lang not in ("fr", "en", "es"):
+        input.lang = "fr"
     booking = Booking(**input.model_dump())
     doc = booking.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     await db.bookings.insert_one(doc)
+    from emailer import notify_client
     await notify_owner(booking)
+    await notify_client(booking)
     return booking
 
 

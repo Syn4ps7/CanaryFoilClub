@@ -28,6 +28,7 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - 6 sections : Hero, Différence (3 piliers), Expériences (3 tarifs), Corporate Sunset 890€, Revendeur Fliteboard, Footer réassurance
 - Formulaire de réservation démo connecté au backend (persisté en MongoDB, toast succès/erreur)
 - Alerte email à chaque réservation via Resend managé Emergent (`/app/backend/emailer.py`, proxy integrations.emergentagent.com, gate guardrails G2/G3, template HTML dark luxe, Reply-To = email client). Destinataire : OWNER_EMAIL dans backend/.env — actuellement placeholder `bookings@canaryfoilclub.com` (REFUSÉ par le proxy car domaine inexistant : l'alerte échoue en silence, la réservation reste enregistrée). Remplacer par le vrai email du propriétaire pour activer.
+- Email de confirmation automatique au client après sa demande (`notify_client`), rédigé dans la langue du site au moment de l'envoi (FR/EN/ES, champ `lang` du booking), récapitulatif expérience/date/participants, aucun lien externe (tel: uniquement)
 - Motion premium : lenis smooth scroll, scroll-reveals staggered, micro-interactions hover, marquee éditorial
 - data-testid sur tous les éléments interactifs
 
@@ -44,4 +45,3 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - P1 : Page admin ou listing privé des demandes de réservation
 - P2 : Galerie Instagram / avis clients
 - P2 : SEO multilingue (hreflang, métadonnées par langue), mentions légales réelles
-- P2 : Confirmation email automatique au client après sa demande

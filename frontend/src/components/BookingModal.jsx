@@ -11,7 +11,7 @@ const inputCls =
   "w-full rounded-xl border border-white/15 bg-deep px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-colors duration-300 focus:border-glow/70";
 
 const BookingModal = ({ open, preset, onClose }) => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -34,7 +34,7 @@ const BookingModal = ({ open, preset, onClose }) => {
     e.preventDefault();
     setSending(true);
     try {
-      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants) });
+      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), lang });
       toast.success(t.toast.success);
       onClose();
       setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "" });
