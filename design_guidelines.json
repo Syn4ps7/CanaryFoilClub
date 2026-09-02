@@ -1,0 +1,282 @@
+{
+  "project_name": "Canary Foil Club",
+  "archetype": "LUXURY_OCEANIC_PREMIUM",
+  "tone": "exclusive, calm power, serene high-tech, elite coastal hospitality",
+  "i18n": {
+    "default_language": "fr",
+    "supported_languages": ["fr", "en", "es"],
+    "switcher_location": "Header navigation bar right & Mobile drawer"
+  },
+  "typography": {
+    "heading_font": "Syne, serif",
+    "subheading_font": "Cormorant Garamond, serif",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight font-extrabold leading-[1.08]",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-bold leading-tight",
+      "h3": "text-xl sm:text-2xl font-semibold leading-snug",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed text-slate-300",
+      "caption": "text-xs sm:text-sm tracking-[0.2em] uppercase font-mono text-cyan-400/90"
+    }
+  },
+  "colors": {
+    "background_primary": "#050B14",
+    "background_secondary": "#0A1322",
+    "background_card": "#0F1C30",
+    "background_card_glass": "rgba(15, 28, 48, 0.75)",
+    "accent_primary": "#00F0FF",
+    "accent_primary_glow": "rgba(0, 240, 255, 0.25)",
+    "accent_gold": "#D4AF37",
+    "accent_deep_ocean": "#0A2540",
+    "accent_turquoise": "#00C2CB",
+    "text_primary": "#F8FAFC",
+    "text_secondary": "#94A3B8",
+    "text_muted": "#64748B",
+    "border_subtle": "rgba(255, 255, 255, 0.1)",
+    "border_active": "rgba(0, 240, 255, 0.4)",
+    "gradient_hero": "linear-gradient(180deg, rgba(5, 11, 20, 0.3) 0%, rgba(5, 11, 20, 0.95) 100%)",
+    "gradient_card_glow": "radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.12) 0%, transparent 75%)"
+  },
+  "image_urls": {
+    "hero_background": "https://images.unsplash.com/photo-1601869959642-58e1ff8d81a3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxlZm9pbCUyMHN1cmZib2FyZCUyMG9jZWFuJTIwbHV4dXJ5JTIwZmxpZ2h0fGVufDB8fHx8MTc4ODM3Nzg3OXww&ixlib=rb-4.1.0&q=85",
+    "efoil_gear_beach": "https://images.unsplash.com/photo-1775317809526-4a8ee9ec310f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwzfHxlZm9pbCUyMHN1cmZib2FyZCUyMG9jZWFuJTIwbHV4dXJ5JTIwZmxpZ2h0fGVufDB8fHx8MTc4ODM3Nzg3OXww&ixlib=rb-4.1.0&q=85",
+    "costa_adeje_coast": "https://images.unsplash.com/photo-1706462708904-824d117bc274?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHxjb3N0YSUyMGFkZWplJTIwdGVuZXJpZmUlMjBvY2VhbiUyMGFlcmlhbCUyMHN1bnNldCUyMGx1eHVyeSUyMGJvYXQlMjBjb2FzdHxlbnwwfHx8fDE3ODgzNzc4Nzl8MA&ixlib=rb-4.1.0&q=85",
+    "sunset_champagne": "https://images.unsplash.com/photo-1609601521638-4c91a255208f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w8NjA1NTJ8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjB5YWNodCUyMHN1bnNldCUyMG9jZWFuJTIwY2hhbXBhZ25lfGVufDB8fHx8MTc4ODM3Nzg4OHww&ixlib=rb-4.1.0&q=85",
+    "ocean_aerial_water": "https://images.unsplash.com/photo-1505142468610-359e7d316be0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w8NjA2OTV8MHwxfHNlYXJjaHwxfHxhZXJpYWwlMjBvY2VhbiUyMHR1cnF1b2lzZSUyMHdhdGVyJTIwd2F2ZXxlbnwwfHx8fDE3ODgzNzc4ODh8MA&ixlib=rb-4.1.0&q=85"
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "name": "Kinetic Hero Header",
+      "components": ["Navbar", "LanguageSwitcher", "KineticHeadline", "HeroVideoBackgroundOverlay", "BookingCTA"],
+      "content": {
+        "fr": {
+          "tagline": "TÉNÉRIFE • COSTA ADEJE",
+          "title_line_1": "L'Art du Vol Silence.",
+          "title_line_2": "L'Expérience Fliteboard Ultime.",
+          "subtitle": "Initiation VIP et excursions exclusives en eFoil 100% encadrées par casque radio bidirectionnel. Zéro émission, pure sensation.",
+          "cta": "Réserver mon vol"
+        },
+        "en": {
+          "tagline": "TENERIFE • COSTA ADEJE",
+          "title_line_1": "The Art of Silent Flight.",
+          "title_line_2": "The Ultimate Fliteboard Experience.",
+          "subtitle": "VIP initiation & private eFoil excursions with two-way radio helmet coaching. Zero emissions, pure serenity.",
+          "cta": "Book My Flight"
+        },
+        "es": {
+          "tagline": "TENERIFE • COSTA ADEJE",
+          "title_line_1": "El Arte del Vuelo Silencioso.",
+          "title_line_2": "La Experiencia Fliteboard Definitiva.",
+          "subtitle": "Iniciación VIP y excursiones exclusivas en eFoil con cascos de radio bidireccionales. Cero emisiones, pura emoción.",
+          "cta": "Reservar Mi Vuelo"
+        }
+      }
+    },
+    {
+      "id": "marquee",
+      "name": "Editorial Ribbon Marquee",
+      "type": "react-fast-marquee",
+      "items": [
+        "FLITEBOARD SERIES 6 AUTHORIZED",
+        "100% ELECTRIC HYDROFOIL",
+        "BB TALKIN RADIO HELMET GUIDANCE",
+        "MOBILE VIP BASE CAMP COSTA ADEJE",
+        "ZERO EMISSIONS • PURE SILENCE",
+        "GUARANTEED FOIL FLIGHT ON DAY ONE"
+      ]
+    },
+    {
+      "id": "pillars",
+      "name": "Notre Différence (3 Piliers)",
+      "pillars": [
+        {
+          "key": "tech_eco",
+          "icon": "Zap",
+          "title_fr": "Technologie & Écologie",
+          "title_en": "Technology & Eco-Purity",
+          "title_es": "Tecnología y Ecología",
+          "desc_fr": "Fliteboards 100% électriques de dernière génération. Navigation zéro bruit et zéro émission carbone sur les eaux cristallines de Ténérife.",
+          "desc_en": "Latest generation 100% electric Fliteboards. Zero noise and zero carbon footprint over crystal waters.",
+          "desc_es": "Fliteboards 100% eléctricos de última generación. Navegación sin ruido y cero emisiones."
+        },
+        {
+          "key": "coaching_vip",
+          "icon": "Radio",
+          "title_fr": "Coaching VIP & Radio BB Talkin",
+          "title_en": "VIP Coaching & BB Talkin Radio",
+          "title_es": "Coaching VIP y Radio BB Talkin",
+          "desc_fr": "Casques étanches bidirectionnels Bluetooth. Un accompagnement vocal en temps réel, garantissant votre envol en moins de 15 minutes.",
+          "desc_en": "Two-way waterproof Bluetooth radio helmets. Real-time voice coaching guaranteeing lift-off within 15 minutes.",
+          "desc_es": "Cascos de radio bidireccionales en tiempo real. Garantía de volar sobre el agua en la primera sesión."
+        },
+        {
+          "key": "mobile_camp",
+          "icon": "Navigation",
+          "title_fr": "Agilité Mobile Camp de Base",
+          "title_en": "Mobile Base Camp Agility",
+          "title_es": "Campamento Base Móvil",
+          "desc_fr": "Un van aménagé haut de gamme prêt à se déployer sur les meilleures criques de Costa Adeje selon le vent et la houle du jour.",
+          "desc_en": "A luxury custom van deployed to the calmest bay of Costa Adeje based on real-time sea conditions.",
+          "desc_es": "Van de lujo adaptada para trasladarse al mejor punto marítimo de Costa Adeje según las condiciones del día."
+        }
+      ]
+    },
+    {
+      "id": "experiences",
+      "name": "Nos Expériences (Tarifs)",
+      "cards": [
+        {
+          "id": "discovery",
+          "name_fr": "Discovery Session",
+          "name_en": "Discovery Session",
+          "name_es": "Sesión Discovery",
+          "price": "145€",
+          "duration": "1h15 (50 min vol)",
+          "badge": "Le Plus Popular",
+          "features_fr": ["Breifing sécurité & prise en main (25 min)", "50 minutes de vol eFoil sur le spot", "Casque radio BB Talkin individuel", "Combinaison & gilet d'impact Flite", "Garantie envol dès la 1ère séance"],
+          "features_en": ["Safety briefing & tutorial (25 min)", "50 minutes eFoil flight time", "Individual BB Talkin radio helmet", "Wetsuit & Flite impact vest provided", "Flight guarantee on 1st session"],
+          "features_es": ["Instrucción de seguridad y técnica", "50 minutos de vuelo eFoil", "Casco con radio BB Talkin", "Neopreno y chaleco Flite incluidos", "Garantía de vuelo en la 1ª sesión"]
+        },
+        {
+          "id": "duo_vip",
+          "name_fr": "Duo VIP Experience",
+          "name_en": "Duo VIP Experience",
+          "name_es": "Experiencia Duo VIP",
+          "price": "280€",
+          "duration": "1h30 (60 min vol)",
+          "badge": "Exclusif Couples / Amis",
+          "features_fr": ["2 Fliteboards simultanés sur l'eau", "Instructeur dédié 100% privé", "Casques radio intercom direct", "Serviettes chaudes & rafraîchissements", "PhotosHD souvenir incluses"],
+          "features_en": ["2 simultaneous Fliteboards on water", "100% dedicated private instructor", "Direct intercom radio helmets", "Warm towels & fresh beverages", "HD souvenir photos included"],
+          "features_es": ["2 Fliteboards simultáneos en el agua", "Instructor privado dedicado 100%", "Cascos de radio intercom directos", "Toallas calientes y bebidas gratuitas", "Fotos HD de recuerdo incluidas"]
+        },
+        {
+          "id": "drone_option",
+          "name_fr": "Option Drone 4K",
+          "name_en": "4K Drone Cinema Option",
+          "name_es": "Opción Dron 4K",
+          "price": "+50€",
+          "duration": "Disponible Lun-Mer",
+          "badge": "Souvenir Cinématographique",
+          "features_fr": ["Pilote drone certifié sur place", "Captation 4K 60fps de votre vol", "Montage vidéo vertical (Reel/TikTok)", "Fichiers bruts sous 24 heures"],
+          "features_en": ["Certified drone pilot on site", "4K 60fps aerial flight capture", "Vertical video editing for Reels", "Raw high-res files within 24h"],
+          "features_es": ["Piloto de dron certificado en vivo", "Grabación 4K 60fps de tu vuelo", "Edición de video vertical lista", "Entrega de archivos en 24h"]
+        }
+      ]
+    },
+    {
+      "id": "corporate_sunset",
+      "name": "Offre B2B Corporate Sunset",
+      "price": "890€",
+      "capacity": "Jusqu'à 6 personnes",
+      "duration": "3 Horaires Privatisation (Golden Hour)",
+      "badge": "Team-Building Ultra-Premium",
+      "content_fr": {
+        "title": "Corporate Sunset & Team-Building Exclusive",
+        "description": "Privatisez le Canary Foil Club pendant la Golden Hour. Une expérience d'exception avec rotation sur l'eau, apéritif traiteur partenaire raffiné et toast au champagne au coucher du soleil sur Costa Adeje.",
+        "highlights": [
+          "Privatisation 3H du camp de base mobile",
+          "Rotation jusqu'à 6 participants sur Fliteboards",
+          "Apéritif traiteur gastronomique partenaire",
+          "Champagne & bar à mocktails rafraîchissant",
+          "Service photo & vidéo drone inclus"
+        ]
+      },
+      "content_en": {
+        "title": "Corporate Sunset & Private Executive Experience",
+        "description": "Exclusive 3-hour private hire during Golden Hour. Includes multi-rider Fliteboard rotation, gourmet catering from our partner chef, and sunset champagne toast off Costa Adeje.",
+        "highlights": [
+          "3-hour private mobile base camp takeover",
+          "eFoil rotation for up to 6 guests",
+          "Gourmet partner chef catering platter",
+          "Chilled champagne & premium refreshments",
+          "Drone video & photography included"
+        ]
+      },
+      "content_es": {
+        "title": "Corporate Sunset & Evento de Empresa",
+        "description": "Privatización exclusiva de 3 horas durante la Hora Dorada. Rotación en eFoil, aperitivo gourmet de catering asociado y brindis de champán al atardecer.",
+        "highlights": [
+          "Privatización de 3 horas del base camp",
+          "Rotación para hasta 6 personas",
+          "Catering gourmet de nuestro chef partner",
+          "Champán frío y refrescos premium",
+          "Video con dron y fotografía incluidos"
+        ]
+      }
+    },
+    {
+      "id": "fliteboard_reseller",
+      "name": "Revendeur Officiel Fliteboard & Test Drive",
+      "content_fr": {
+        "tagline": "REVENDEUR OFFICIEL AGRÉÉ TENERIFE",
+        "title": "Faites l'expérience du Fliteboard Series 6 avant d'acheter.",
+        "description": "En tant que partenaire officiel Fliteboard, nous vous accompagnons dans la configuration et l'achat de votre planche sur-mesure (MN Carbon, ULTRA, Air, Flitescooter). Le montant de votre Test Drive est déduit en cas d'achat.",
+        "cta": "Demander un Test Drive / Devis Planche"
+      },
+      "content_en": {
+        "tagline": "AUTHORIZED OFFICIAL TENERIFE RESELLER",
+        "title": "Experience the Fliteboard Series 6 before acquiring.",
+        "description": "As official Fliteboard partners, we guide you through custom specs and purchases (MN Carbon, ULTRA, Air, Flitescooter). Test Drive fee is credited toward your board purchase.",
+        "cta": "Request Test Drive / Board Quote"
+      },
+      "content_es": {
+        "tagline": "DISTRIBUIDOR OFICIAL AUTORIZADO TENERIFE",
+        "title": "Prueba el Fliteboard Series 6 antes de comprar.",
+        "description": "Como distribuidores oficiales, te guiamos en la elección y personalización de tu eFoil. El coste del Test Drive se descuenta en caso de compra.",
+        "cta": "Solicitar Test Drive / Presupuesto"
+      }
+    },
+    {
+      "id": "booking_modal",
+      "name": "Formulaire de Réservation / Demande VIP (Modal / Slide-over)",
+      "fields": ["Name", "Email", "Phone (WhatsApp)", "Preferred Experience", "Date", "Participants", "Hotel / Location", "Special Notes"],
+      "backend_endpoint": "/api/booking"
+    },
+    {
+      "id": "footer",
+      "name": "Footer & Trust Badges",
+      "payment_badges": ["Stripe Certified", "Visa", "Mastercard", "Apple Pay"],
+      "contacts": {
+        "whatsapp": "+34 600 000 000 (VIP Line)",
+        "instagram": "@canaryfoilclub",
+        "location": "Costa Adeje, Tenerife, Canary Islands"
+      }
+    }
+  ],
+  "testing_guidelines": {
+    "data_testid_rules": "All interactive buttons, links, inputs, language switches, modal toggles, and price cards MUST have data-testid attributes in kebab-case format.",
+    "required_testids": [
+      "nav-brand-logo",
+      "nav-link-difference",
+      "nav-link-experiences",
+      "nav-link-b2b",
+      "nav-link-reseller",
+      "lang-switcher-fr",
+      "lang-switcher-en",
+      "lang-switcher-es",
+      "hero-cta-book-button",
+      "card-experience-discovery",
+      "card-experience-duo",
+      "card-experience-drone",
+      "b2b-cta-reserve-button",
+      "reseller-cta-testdrive-button",
+      "modal-booking-close-button",
+      "booking-form-submit",
+      "footer-whatsapp-link",
+      "footer-instagram-link"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Use Lenis for smooth momentum scroll and Framer Motion for kinetic typography reveals.",
+    "Implement language state management (React context or state) for seamless instant FR/EN/ES switching.",
+    "Ensure dark ocean theme with high contrast text (min 4.5:1 ratio for body, 3:1 for headings).",
+    "Hook the booking form to the FastAPI backend endpoint POST /api/booking with mock success toast notification via Sonner.",
+    "Keep header backdrop blurs smooth (backdrop-blur-xl with border-white/10).",
+    "Make sure all grid items are direct children or use proper layout structure.",
+    "Do not use transparent background on dropdowns or modals."
+  ]
+}
