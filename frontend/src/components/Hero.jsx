@@ -29,11 +29,18 @@ const Hero = ({ onBook }) => {
   return (
     <section id="hero" data-testid="hero-section" className="relative min-h-screen flex items-end overflow-hidden">
       <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
-        <img
-          src={HERO_IMG}
-          alt="eFoil flying over the ocean at Costa Adeje"
+        <video
+          data-testid="hero-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={HERO_IMG}
           className="h-full w-full object-cover"
-        />
+        >
+          <source src="/hero-efoil.webm" type="video/webm" />
+          <source src="/hero-efoil.mp4" type="video/mp4" />
+        </video>
       </motion.div>
       <div className="absolute inset-0 bg-gradient-to-b from-abyss/70 via-abyss/30 to-abyss" />
       <div className="absolute inset-0 bg-gradient-to-r from-abyss/70 via-transparent to-transparent" />

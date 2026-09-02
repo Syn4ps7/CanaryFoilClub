@@ -24,21 +24,24 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 ## Implemented (2026-09-02)
 - One-page complet FR/EN/ES avec bascule instantanée
 - Intro cinématique + hero kinétique avec parallax
+- Vidéo hero en boucle (eFoil golden hour, Pexels 28493916, compressée 1080p MP4 H.264 9.8MB + WebM/VP9 1600px 10.7MB, poster Unsplash en fallback) — `/frontend/public/hero-efoil.{mp4,webm}`
 - 6 sections : Hero, Différence (3 piliers), Expériences (3 tarifs), Corporate Sunset 890€, Revendeur Fliteboard, Footer réassurance
 - Formulaire de réservation démo connecté au backend (persisté en MongoDB, toast succès/erreur)
+- Alerte email à chaque réservation via Resend managé Emergent (`/app/backend/emailer.py`, proxy integrations.emergentagent.com, gate guardrails G2/G3, template HTML dark luxe, Reply-To = email client). Destinataire : OWNER_EMAIL dans backend/.env — actuellement placeholder `bookings@canaryfoilclub.com` (REFUSÉ par le proxy car domaine inexistant : l'alerte échoue en silence, la réservation reste enregistrée). Remplacer par le vrai email du propriétaire pour activer.
 - Motion premium : lenis smooth scroll, scroll-reveals staggered, micro-interactions hover, marquee éditorial
 - data-testid sur tous les éléments interactifs
 
 ## Verified
-- POST /api/booking + GET /api/bookings (curl, 2 bookings en base dont 1 via l'UI)
-- Parcours complet screenshot : switch EN, ouverture modal, soumission formulaire Corporate, toast succès
-- Rendu visuel hero, expériences, corporate, reseller, footer
+- POST /api/booking + GET /api/bookings (curl, bookings en base)
+- Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)
+- Vidéo hero : lecture confirmée en headless (currentTime 7.1s → 9.7s, readyState 4) ; curl 206 video/mp4
+- Parcours complet screenshot : switch EN, modal, soumission Corporate, toast succès
 
 ## Backlog
-- P0 : Remplacer les coordonnées fictives (WhatsApp, Instagram) par les vraies
+- P0 : Fournir le VRAI email du propriétaire pour activer les alertes (OWNER_EMAIL dans backend/.env) + vraies coordonnées WhatsApp/Instagram
 - P1 : Paiement Stripe réel sur les expériences (clé test dispo dans le pod)
-- P1 : Notification email/WhatsApp au propriétaire à chaque demande de réservation (Resend/Twilio)
+- P1 : Notification WhatsApp (Twilio) en plus de l'email
 - P1 : Page admin ou listing privé des demandes de réservation
-- P2 : Vidéo hero en arrière-plan (boucle eFoil) à la place de l'image
 - P2 : Galerie Instagram / avis clients
 - P2 : SEO multilingue (hreflang, métadonnées par langue), mentions légales réelles
+- P2 : Confirmation email automatique au client après sa demande

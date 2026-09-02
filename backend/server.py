@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
+from emailer import notify_owner
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -55,6 +56,7 @@ async def create_booking(input: BookingCreate):
     doc = booking.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     await db.bookings.insert_one(doc)
+    await notify_owner(booking)
     return booking
 
 
