@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 4 tested end-to-end: (1) settings.slot_times editable per slot with validation/padding, (2) planning includes slot_times, (3) meeting-point GET/PUT with weather/override/default sources, (4) manual reminder POST /admin/bookings/{id}/reminder (404/400/200/502), (5) batch POST /admin/reminders/run with idempotence + pending/cancelled exclusion, (6) confirmation email flag on status→confirmed with slot. Backend: 19/19 new tests pass. Frontend: all 4 flows pass — CapacitySettings 6 time inputs + save/stepper/restore, BookingsTable 'Rappel J-1' column + reminder toggle to 'Envoyé' + toast, /admin/bookings slot select showing '09:00 · C1', AdminPlanning grid times + MeetingPoint spot select + save → 'Choix manuel' + reset → 'Recommandation météo'. All test bookings restored (dates, status, reminder flags) via pymongo.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "/api/admin/bookings/{id}/reminder", "issue": "For undeliverable emails (example.com) the 502 body may be replaced by an ingress HTML wrapper before reaching client (proxy artefact). Status is still 502 — accepted as-is."}
+  ]},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "BookingsTable slot select", "issues": ["React hydration warning 'span cannot be a child of option' — caused by Emergent's x-ve-dynamic instrumentation injecting a <span> inside <option>, not by BookingsTable.jsx. Dev-only cosmetic. Same category as iter 3 remark."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4.py",
+    "/app/test_reports/pytest/iter4.xml",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(regression, not iter 4) /app/backend/tests/test_iteration3.py::test_weather_past_date_acceptable uses a hardcoded past date now outside the 60-day historical window enforced by weather.py — the test now gets 400 'Historique météo limité aux 60 derniers jours'. Consider using date.today()-timedelta(days=30) instead of a frozen literal."
+  ],
+  "critical_code_review_comments": [
+    "reminders.py send_reminder writes reminder_sent=<bool> unconditionally. On failure the doc still has reminder_sent=False (falsy). Combined with the run_reminders filter `reminder_sent: {$ne: True}`, this is safe (retry next run). Good.",
+    "server.py POST /admin/bookings/{id}/reminder returns 502 detail as French string. However the ingress may sometimes replace the body with an HTML wrapper (seen in test). Not a code bug — env artefact.",
+    "CapacitySettings.jsx uses JSON.stringify equality to compute `dirty` — depends on stable key order (works because both objects are built the same way, but fragile). Fine for now.",
+    "BookingsTable.jsx <option>{t} · C{i+1}</option> — the Emergent build-time transform wraps the string in a <span>, producing the hydration console error above. Consider hoisting the option text into a plain string variable computed outside JSX to avoid the wrapper (optional)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration4.py"
+  ],
+  "success_rate": {"backend": "100% (19/19 new; 55/56 total incl. iter3 regression)", "frontend": "100% of tested flows"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "Two temporary bookings created and deleted inside test_run_does_not_send_pending_or_cancelled (TEST Pending / TEST Cancelled with delivered@resend.dev, tomorrow's date). All persistent test bookings (delivered@resend.dev, example.com) restored to original date/status/reminder fields via pymongo teardown.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All iter 4 endpoints covered. Test file: /app/backend/tests/test_iteration4.py. Frontend testids verified: settings-slot-time-1..6, settings-slots-minus/plus, settings-save, booking-reminder-{id}, booking-slot-select-{id} (options like '09:00 · C1'), meeting-point, meeting-point-source, meeting-point-spot, meeting-point-address, meeting-point-save, meeting-point-reset. Planning grid rows show 'HH:MM' + 'C{n}' labels. WeatherCard renders MeetingPoint as a child. Note: iter3 test test_weather_past_date_acceptable is now failing purely from date drift (60-day horizon) — needs date fixture fix, not a backend bug."
+}

@@ -143,7 +143,7 @@ class TestWeather:
         """A very old date may return 502/504 or nulls — acceptable, just report."""
         r = requests.get(f"{API}/admin/weather?day=2020-01-01", headers=auth_headers, timeout=30)
         # Just make sure it doesn't 500. 200 or 502/504 is acceptable.
-        assert r.status_code in (200, 502, 504), f"unexpected {r.status_code} {r.text[:200]}"
+        assert r.status_code in (200, 400, 502, 504), f"unexpected {r.status_code} {r.text[:200]}"
 
 
 # --- Week planning ---

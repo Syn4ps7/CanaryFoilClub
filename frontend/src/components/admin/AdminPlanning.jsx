@@ -55,7 +55,7 @@ const AdminPlanning = ({ onLogout }) => {
     setBusyId(id);
     try {
       await adminApi.patch(`/admin/bookings/${id}`, { slot });
-      toast.success(slot ? `Placée sur le créneau ${slot}` : "Créneau retiré");
+      toast.success(slot ? `Placée à ${plan?.slot_times?.[slot - 1] || `C${slot}`}` : "Créneau retiré");
       await load();
     } catch (err) {
       toast.error(formatApiError(err));
@@ -147,7 +147,10 @@ const AdminPlanning = ({ onLogout }) => {
                     style={{ gridTemplateColumns: `130px repeat(${plan.boards}, minmax(0,1fr))` }}
                   >
                     <div className="px-4 py-3">
-                      <p className="font-syne text-sm font-bold text-white">Créneau {s.slot}</p>
+                      <p className="font-syne text-sm font-bold text-white">
+                        <span className="font-outfit tabular-nums text-glow">{plan.slot_times?.[s.slot - 1]}</span>
+                        <span className="ml-1.5 font-mono text-[10px] font-normal text-slate-500">C{s.slot}</span>
+                      </p>
                       <p className={`text-[11px] ${s.overbooked ? "text-red-300" : s.free === 0 ? "text-gold" : "text-slate-500"}`}>
                         {s.overbooked ? "Surbooké" : s.free === 0 ? "Complet" : `${s.free} libre${s.free > 1 ? "s" : ""}`}
                       </p>
@@ -201,7 +204,7 @@ const AdminPlanning = ({ onLogout }) => {
                       <option value="">Choisir un créneau…</option>
                       {plan.slots.map((s) => (
                         <option key={s.slot} value={s.slot} disabled={s.free < boardsNeeded(b, plan.boards)}>
-                          Créneau {s.slot} — {s.free} libre{s.free > 1 ? "s" : ""}
+                          {plan.slot_times?.[s.slot - 1]} (C{s.slot}) — {s.free} libre{s.free > 1 ? "s" : ""}
                         </option>
                       ))}
                     </select>

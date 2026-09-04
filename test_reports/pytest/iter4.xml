@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="19" time="4.004" timestamp="2026-09-04T07:06:22.961010+00:00" hostname="agent-env-0629e734-9471-4688-87db-1d689c94814d"><testcase classname="tests.test_iteration4.TestSettingsSlotTimes" name="test_get_settings_has_slot_times" time="0.784" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_get_meeting_point" time="1.029" /><testcase classname="tests.test_iteration4.TestSettingsSlotTimes" name="test_put_settings_invalid_entries_dropped_and_padded" time="0.080" /><testcase classname="tests.test_iteration4.TestSettingsSlotTimes" name="test_put_settings_no_slot_times_defaults" time="0.076" /><testcase classname="tests.test_iteration4.TestSettingsSlotTimes" name="test_restore_defaults" time="0.192" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_put_meeting_point_override_autofill_address" time="0.334" /><testcase classname="tests.test_iteration4.TestReminders" name="test_reminder_unknown_id_404" time="0.080" /><testcase classname="tests.test_iteration4.TestReminders" name="test_reminder_pending_400" time="0.146" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_put_meeting_point_custom_address_kept" time="0.223" /><testcase classname="tests.test_iteration4.TestReminders" name="test_reminder_confirmed_delivered" time="0.648" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_put_meeting_point_reset" time="0.096" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_meeting_point_invalid_date" time="0.070" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_meeting_point_no_token" time="0.074" /><testcase classname="tests.test_iteration4.TestMeetingPoint" name="test_cleanup" time="0.421" /><testcase classname="tests.test_iteration4.TestReminders" name="test_reminder_confirmed_undeliverable_502" time="0.427"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:1116: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_iteration4.py:228: in test_reminder_confirmed_undeliverable_502
+    assert "detail" in r.json()
+                       ^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1120: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="tests.test_iteration4.TestPlanningSlotTimes" name="test_planning_has_slot_times" time="0.081" /><testcase classname="tests.test_iteration4.TestConfirmEmailSlotInclusion" name="test_patch_confirmed_returns_confirmation_flag" time="0.543" /><testcase classname="tests.test_iteration4.TestRemindersRun" name="test_run_reminders_idempotent" time="0.483" /><testcase classname="tests.test_iteration4.TestRemindersRun" name="test_run_does_not_send_pending_or_cancelled" time="0.092" /></testsuite></testsuites>

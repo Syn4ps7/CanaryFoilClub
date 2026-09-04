@@ -13,6 +13,24 @@ _cache: dict[str, tuple[float, dict]] = {}
 
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"]
 
+SPOT_ADDRESS = {
+    "Playa del Duque / Fañabé": "Playa de Fañabé — parking Avenida de Bruselas, Costa Adeje (van Canary Foil Club côté nord de la plage)",
+    "La Caleta / Playa Paraíso": "La Caleta — parking du front de mer, Calle La Caleta, Adeje (van sur la cale de mise à l'eau)",
+    "El Puertito de Adeje": "El Puertito de Adeje — parking en haut de la cale, Armeñime (van au bord de la crique)",
+    "Puerto Colón (bassin abrité)": "Puerto Colón — rampe de mise à l'eau côté Playa La Pinta, Costa Adeje",
+}
+
+
+def conditions_label(summary: dict, lang: str = "fr") -> str:
+    w, g, wave, d = summary.get("wind_avg"), summary.get("gust_max"), summary.get("wave_avg"), summary.get("wind_dir_label")
+    if w is None:
+        return ""
+    if lang == "en":
+        return f"Wind {w} km/h {d or ''} (gusts {g}), swell {wave} m".strip()
+    if lang == "es":
+        return f"Viento {w} km/h {d or ''} (rachas {g}), oleaje {wave} m".strip()
+    return f"Vent {w} km/h {d or ''} (rafales {g}), houle {wave} m".strip()
+
 
 def compass(deg):
     return None if deg is None else COMPASS[int((deg + 11.25) // 22.5) % 16]

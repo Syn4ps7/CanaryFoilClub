@@ -1,10 +1,23 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Settings2, Check } from "lucide-react";
+import { Settings2, Check, Clock } from "lucide-react";
 import { adminApi, formatApiError } from "@/lib/adminApi";
 
 const MAX = 6;
+const STEP = 90;
+
+const addMinutes = (t, n) => {
+  const [h, m] = t.split(":").map(Number);
+  const total = Math.min(h * 60 + m + n, 23 * 60 + 30);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+
+const fitTimes = (times, n) => {
+  const out = times.slice(0, n);
+  while (out.length < n) out.push(addMinutes(out[out.length - 1] || "07:30", STEP));
+  return out;
+};
 
 const Stepper = ({ label, value, onChange, testId }) => (
   <div className="flex items-center justify-between gap-3">
@@ -18,14 +31,17 @@ const Stepper = ({ label, value, onChange, testId }) => (
 );
 
 const CapacitySettings = ({ settings, onSaved }) => {
-  const [form, setForm] = useState({ boards: 3, slots_per_day: 6 });
+  const [form, setForm] = useState({ boards: 3, slots_per_day: 6, slot_times: [] });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (settings) setForm({ boards: settings.boards, slots_per_day: settings.slots_per_day });
+    if (settings) setForm({ boards: settings.boards, slots_per_day: settings.slots_per_day, slot_times: settings.slot_times });
   }, [settings]);
 
-  const dirty = settings && (form.boards !== settings.boards || form.slots_per_day !== settings.slots_per_day);
+  const dirty = settings && JSON.stringify(form) !== JSON.stringify({ boards: settings.boards, slots_per_day: settings.slots_per_day, slot_times: settings.slot_times });
+
+  const setSlots = (n) => setForm((f) => ({ ...f, slots_per_day: n, slot_times: fitTimes(f.slot_times, n) }));
+  const setTime = (i, v) => setForm((f) => ({ ...f, slot_times: f.slot_times.map((t, j) => (j === i ? v : t)) }));
 
   const save = async () => {
     setSaving(true);
@@ -49,13 +65,33 @@ const CapacitySettings = ({ settings, onSaved }) => {
       className="rounded-2xl border border-white/10 bg-panel/70 p-5 sm:p-6 backdrop-blur-xl"
     >
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">Capacité du jour</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">Capacité & horaires</p>
         <Settings2 size={15} className="text-glow" />
       </div>
       <div className="mt-5 space-y-4">
         <Stepper label="Planches actives" value={form.boards} onChange={(v) => setForm((f) => ({ ...f, boards: v }))} testId="settings-boards" />
-        <Stepper label="Créneaux / jour (max 6)" value={form.slots_per_day} onChange={(v) => setForm((f) => ({ ...f, slots_per_day: v }))} testId="settings-slots" />
+        <Stepper label="Créneaux / jour (max 6)" value={form.slots_per_day} onChange={setSlots} testId="settings-slots" />
       </div>
+
+      <div className="mt-5 border-t border-white/10 pt-4">
+        <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-slate-500"><Clock size={11} /> Heure de chaque créneau</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {form.slot_times.map((t, i) => (
+            <label key={i} className="flex items-center gap-2 rounded-xl border border-white/10 bg-deep px-2.5 py-1.5">
+              <span className="font-mono text-[10px] text-slate-500">C{i + 1}</span>
+              <input
+                data-testid={`settings-slot-time-${i + 1}`}
+                type="time"
+                value={t}
+                step={900}
+                onChange={(e) => e.target.value && setTime(i, e.target.value)}
+                className="w-full bg-transparent font-outfit text-sm tabular-nums text-white outline-none"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+
       <p className="mt-4 text-xs text-slate-500">
         Capacité = <span className="text-white">{form.boards} × {form.slots_per_day} = {form.boards * form.slots_per_day}</span> sessions-planche / jour
       </p>

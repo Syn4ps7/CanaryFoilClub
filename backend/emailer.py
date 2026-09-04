@@ -274,17 +274,25 @@ CLIENT_CONFIRMED = {
 }
 
 
-def _build_client_email(b, strings) -> tuple[str, str]:
+def _build_client_email(b, strings, extra_rows=None, slot_label=None, cta=None) -> tuple[str, str]:
     lang = b.lang if getattr(b, "lang", None) in strings else "fr"
     s = strings[lang]
     exp = CLIENT_EXP_LABELS[lang].get(b.experience, b.experience)
     subject = f"Canary Foil Club — {s['subject']}"
     rows = [_row(s["lbl_experience"], escape(exp)), _row(s["lbl_date"], escape(b.date))]
-    slot = getattr(b, "slot", None)
-    if slot and "lbl_slot" in s:
-        rows.append(_row(s["lbl_slot"], f"#{int(slot)}"))
+    if slot_label and "lbl_slot" in s:
+        rows.append(_row(s["lbl_slot"], escape(slot_label)))
     rows.append(_row(s["lbl_participants"], str(b.participants)))
+    for label, value in (extra_rows or []):
+        rows.append(_row(label, escape(value)))
     rows = "".join(rows)
+    cta_html = ""
+    if cta:
+        cta_html = (
+            f'<p style="margin:28px 0 0;text-align:center"><a href="{escape(cta["url"])}" '
+            f'style="display:inline-block;background:#00f0ff;color:#050b14;font-family:Arial,sans-serif;font-size:14px;'
+            f'font-weight:bold;text-decoration:none;padding:14px 32px;border-radius:999px">{escape(cta["label"])}</a></p>'
+        )
     html = (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
         'style="background:#050b14;padding:32px 16px"><tr><td align="center">'
@@ -300,6 +308,7 @@ def _build_client_email(b, strings) -> tuple[str, str]:
         f'<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#d4af37;'
         f'text-transform:uppercase;margin:0 0 8px">{escape(s["recap"])}</p>'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{rows}</table>'
+        f'{cta_html}'
         f'<p style="font-family:Arial,sans-serif;font-size:12px;line-height:20px;color:#64748b;margin:24px 0 0">'
         f'{escape(s["note"])}</p>'
         f'<p style="font-family:Arial,sans-serif;font-size:13px;color:#f8fafc;margin:20px 0 0">{s["question"]}</p>'
@@ -321,12 +330,201 @@ async def notify_client(booking) -> bool:
         return False
 
 
-async def notify_confirmed(booking) -> bool:
+async def notify_confirmed(booking, slot_label=None) -> bool:
     try:
-        subject, html = _build_client_email(booking, CLIENT_CONFIRMED)
+        subject, html = _build_client_email(booking, CLIENT_CONFIRMED, slot_label=slot_label)
         email_id = await send_email(to=booking.email, subject=subject, html=html)
         logger.info(f"Client confirmed-email sent (id={email_id}) to {booking.email}")
         return True
     except Exception as e:
         logger.error(f"Client confirmed-email failed for {booking.id}: {e}")
+        return False
+
+
+CLIENT_REMINDER = {
+    "fr": {
+        "subject": "C'est demain — votre point de rendez-vous",
+        "title": "{name}, rendez-vous demain sur l'eau.",
+        "intro": "Selon les prévisions de vent et de houle, notre camp de base mobile sera installé au spot indiqué ci-dessous. Merci d'arriver 10 minutes avant votre créneau — combinaison, gilet et casque radio vous attendent.",
+        "recap": "Votre rendez-vous",
+        "lbl_experience": "Expérience",
+        "lbl_date": "Date",
+        "lbl_slot": "Heure",
+        "lbl_participants": "Participants",
+        "lbl_spot": "Point de RDV",
+        "lbl_access": "Accès",
+        "lbl_conditions": "Conditions",
+        "note": "En cas de changement de dernière minute lié à la mer, nous vous prévenons par WhatsApp avant 8h. Pensez au maillot, à la serviette et à la crème solaire.",
+        "question": 'Une question ? Notre ligne WhatsApp VIP : <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Ténérife. Rappel automatique la veille de votre session.",
+    },
+    "en": {
+        "subject": "Tomorrow — your meeting point",
+        "title": "{name}, see you on the water tomorrow.",
+        "intro": "Based on tomorrow's wind and swell forecast, our mobile base camp will be set up at the spot below. Please arrive 10 minutes before your slot — wetsuit, impact vest and radio helmet are ready for you.",
+        "recap": "Your meeting",
+        "lbl_experience": "Experience",
+        "lbl_date": "Date",
+        "lbl_slot": "Time",
+        "lbl_participants": "Participants",
+        "lbl_spot": "Meeting point",
+        "lbl_access": "Access",
+        "lbl_conditions": "Conditions",
+        "note": "If sea conditions force a last-minute change, we'll message you on WhatsApp before 8am. Bring swimwear, a towel and sunscreen.",
+        "question": 'Questions? Our VIP WhatsApp line: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Automatic reminder sent the day before your session.",
+    },
+    "es": {
+        "subject": "Mañana — tu punto de encuentro",
+        "title": "{name}, nos vemos mañana en el agua.",
+        "intro": "Según la previsión de viento y oleaje, nuestro campamento base móvil estará en el spot indicado abajo. Llega 10 minutos antes de tu horario — neopreno, chaleco y casco con radio te esperan.",
+        "recap": "Tu cita",
+        "lbl_experience": "Experiencia",
+        "lbl_date": "Fecha",
+        "lbl_slot": "Hora",
+        "lbl_participants": "Participantes",
+        "lbl_spot": "Punto de encuentro",
+        "lbl_access": "Acceso",
+        "lbl_conditions": "Condiciones",
+        "note": "Si el mar obliga a un cambio de último momento, te avisaremos por WhatsApp antes de las 8h. Trae bañador, toalla y protector solar.",
+        "question": '¿Dudas? Nuestra línea VIP de WhatsApp: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Recordatorio automático el día anterior a tu sesión.",
+    },
+}
+
+
+async def notify_reminder(booking, slot_label, spot, address, conditions) -> bool:
+    lang = booking.lang if booking.lang in CLIENT_REMINDER else "fr"
+    s = CLIENT_REMINDER[lang]
+    extra = [(s["lbl_spot"], spot), (s["lbl_access"], address)]
+    if conditions:
+        extra.append((s["lbl_conditions"], conditions))
+    try:
+        subject, html = _build_client_email(booking, CLIENT_REMINDER, extra_rows=extra, slot_label=slot_label)
+        email_id = await send_email(to=booking.email, subject=subject, html=html)
+        logger.info(f"Client reminder sent (id={email_id}) to {booking.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Client reminder failed for {booking.id}: {e}")
+        return False
+
+
+CLIENT_REVIEW = {
+    "fr": {
+        "subject": "Comment s'est passé votre vol ?",
+        "title": "{name}, merci d'avoir volé avec nous.",
+        "intro": "Nous espérons que la sensation de glisse au-dessus de l'Atlantique vous accompagne encore. Un mot de votre part nous aide à faire découvrir l'eFoil à d'autres voyageurs — deux minutes suffisent.",
+        "recap": "Votre session",
+        "lbl_experience": "Expérience",
+        "lbl_date": "Date",
+        "lbl_participants": "Participants",
+        "cta": "Laisser mon avis",
+        "note": "Votre avis pourra être publié sur notre site avec votre prénom uniquement, après relecture par notre équipe.",
+        "question": 'Envie de revoler ? Notre ligne WhatsApp VIP : <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Ténérife. Email envoyé le lendemain de votre session.",
+    },
+    "en": {
+        "subject": "How was your flight?",
+        "title": "{name}, thank you for flying with us.",
+        "intro": "We hope the feeling of gliding above the Atlantic is still with you. A few words from you help other travellers discover eFoil — it only takes two minutes.",
+        "recap": "Your session",
+        "lbl_experience": "Experience",
+        "lbl_date": "Date",
+        "lbl_participants": "Participants",
+        "cta": "Leave my review",
+        "note": "Your review may be published on our website with your first name only, after review by our team.",
+        "question": 'Want to fly again? Our VIP WhatsApp line: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Sent the day after your session.",
+    },
+    "es": {
+        "subject": "¿Cómo fue tu vuelo?",
+        "title": "{name}, gracias por volar con nosotros.",
+        "intro": "Esperamos que la sensación de deslizarte sobre el Atlántico siga contigo. Unas palabras tuyas ayudan a otros viajeros a descubrir el eFoil — solo dos minutos.",
+        "recap": "Tu sesión",
+        "lbl_experience": "Experiencia",
+        "lbl_date": "Fecha",
+        "lbl_participants": "Participantes",
+        "cta": "Dejar mi opinión",
+        "note": "Tu opinión podrá publicarse en nuestra web solo con tu nombre, tras revisión de nuestro equipo.",
+        "question": '¿Quieres volver a volar? Nuestra línea VIP de WhatsApp: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Enviado el día después de tu sesión.",
+    },
+}
+
+
+async def notify_review_request(booking, review_url: str) -> bool:
+    lang = booking.lang if booking.lang in CLIENT_REVIEW else "fr"
+    try:
+        subject, html = _build_client_email(booking, CLIENT_REVIEW, cta={"url": review_url, "label": CLIENT_REVIEW[lang]["cta"]})
+        email_id = await send_email(to=booking.email, subject=subject, html=html)
+        logger.info(f"Review request sent (id={email_id}) to {booking.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Review request failed for {booking.id}: {e}")
+        return False
+
+
+def _kpi(label: str, value: str, color: str = "#f8fafc") -> str:
+    return (f'<td style="padding:14px;border:1px solid #1e2f4a;border-radius:12px;background:#0a1322;vertical-align:top">'
+            f'<p style="font-family:Arial,sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin:0 0 6px">{escape(label)}</p>'
+            f'<p style="font-family:Arial,sans-serif;font-size:22px;font-weight:bold;color:{color};margin:0">{escape(value)}</p></td>')
+
+
+def build_weekly_report_email(r: dict) -> tuple[str, str]:
+    eur = lambda v: f"{v:,.0f} €".replace(",", " ")
+    subject = f"Bilan hebdo — semaine du {r['week_label']} : {eur(r['revenue'])} · {r['sessions']} sessions"
+    kpis = "".join([
+        _kpi("Chiffre d'affaires", eur(r["revenue"]), "#00f0ff"),
+        _kpi("Sessions", str(r["sessions"])),
+        _kpi("Occupation", f"{r['occupancy']} %"),
+        _kpi("Commissions", eur(r["commissions"]), "#d4af37"),
+    ])
+    def _day_line(d):
+        if d["sessions"] == 0:
+            return "Jour creux", "#f59e0b"
+        return f"{d['sessions']} session(s) · {eur(d['revenue'])} · {d['occupancy']} %", "#94a3b8"
+
+    def _line_row(label, text, color):
+        return (f'<tr><td style="padding:8px 0;border-bottom:1px solid #1e2f4a;font-family:Arial,sans-serif;font-size:13px;color:#f8fafc;text-transform:capitalize">{escape(label)}</td>'
+                f'<td style="padding:8px 0;border-bottom:1px solid #1e2f4a;font-family:Arial,sans-serif;font-size:13px;color:{color};text-align:right">{escape(text)}</td></tr>')
+
+    day_rows = "".join(_line_row(d["label"], *_day_line(d)) for d in r["days"])
+    offers = "".join(_row(k, escape(eur(v))) for k, v in r["by_offer"].items())
+    def _next_line(d):
+        if d["sessions"] + d["pending"] == 0:
+            return "Libre — à remplir", "#f59e0b"
+        return f"{d['sessions']} confirmée(s) · {d['pending']} en attente", "#94a3b8"
+
+    next_rows = "".join(_line_row(d["label"], *_next_line(d)) for d in r["next_days"])
+    html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050b14;padding:32px 16px"><tr><td align="center">'
+        '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#0f1c30;border:1px solid #1e2f4a;border-radius:16px;padding:32px"><tr><td>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:4px;color:#00f0ff;text-transform:uppercase;margin:0 0 8px">Canary Foil Club — Bilan hebdomadaire</p>'
+        f'<h1 style="font-family:Arial,sans-serif;font-size:22px;color:#f8fafc;margin:0 0 6px">Semaine du {escape(r["week_label"])}</h1>'
+        f'<p style="font-family:Arial,sans-serif;font-size:13px;color:#94a3b8;margin:0 0 24px">{r["empty_days"]} jour(s) creux · {r["pending_total"]} demande(s) en attente à traiter · note moyenne {r["avg_rating"] or "—"}/5 ({r["reviews"]} avis)</p>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="8"><tr>{kpis}</tr></table>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#d4af37;text-transform:uppercase;margin:24px 0 8px">Jour par jour</p>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{day_rows}</table>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#d4af37;text-transform:uppercase;margin:24px 0 8px">CA par offre</p>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{offers}</table>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#d4af37;text-transform:uppercase;margin:24px 0 8px">Semaine à venir</p>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{next_rows}</table>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;color:#64748b;margin:28px 0 0">Envoyé automatiquement chaque lundi matin par le dashboard Canary Foil Club.</p>'
+        '</td></tr></table></td></tr></table>'
+    )
+    return subject, html
+
+
+async def send_weekly_report(report: dict, to: str | None = None) -> bool:
+    recipient = to or OWNER_EMAIL
+    if not recipient:
+        logger.warning("OWNER_EMAIL not set; skipping weekly report")
+        return False
+    try:
+        subject, html = build_weekly_report_email(report)
+        email_id = await send_email(to=recipient, subject=subject, html=html)
+        logger.info(f"Weekly report sent (id={email_id}) to {recipient}")
+        return True
+    except Exception as e:
+        logger.error(f"Weekly report failed: {e}")
         return False

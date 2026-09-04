@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound } from "lucide-react";
+import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound, Star } from "lucide-react";
 import ChangePassword from "@/components/admin/ChangePassword";
 
 const NAV = [
   { to: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard, end: true, id: "nav-dashboard" },
   { to: "/admin/bookings", label: "Réservations", icon: ListOrdered, id: "nav-bookings" },
   { to: "/admin/planning", label: "Planning", icon: CalendarRange, id: "nav-planning" },
+  { to: "/admin/reviews", label: "Avis", icon: Star, id: "nav-reviews" },
 ];
 
 const AdminLayout = ({ admin, onLogout, children }) => {

@@ -3,12 +3,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import Landing from "@/pages/Landing";
 import Admin from "@/pages/Admin";
+import ReviewPage from "@/pages/ReviewPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/avis/:token" element={<ReviewPage />} />
         <Route path="/admin/*" element={<Admin />} />
       </Routes>
       <Toaster

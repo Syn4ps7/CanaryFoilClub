@@ -58,6 +58,18 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Typo des chiffres : Outfit (tabular-nums) sur tous les KPIs/montants admin
 - Testé : testing_agent iteration_3 (backend 37/37, frontend 100 %) ; fix erreur météo hors horizon (message court)
 
+## Implemented (2026-06) — Admin v4
+- Créneaux horaires : `settings.slot_times` (HH:MM, un par créneau, défaut 09:00/10:30/12:00/13:30/15:00/16:30, validés + complétés par +90 min) éditables dans « Capacité & horaires » ; affichés dans le planning (heure + Cn), les selects de créneau, et dans les emails client (confirmation + rappel)
+- Rappel veille automatique (`reminders.py`) : boucle asyncio toutes les 15 min, à partir de 17h heure Canaries, envoie une fois par réservation confirmée de demain (`reminder_sent`) un email FR/EN/ES avec heure du créneau, point de RDV, accès, conditions vent/houle prévues ; POST /api/admin/reminders/run (manuel), POST /api/admin/bookings/{id}/reminder (envoi/renvoi individuel, bouton « Rappel J-1 » dans les tables)
+- Point de RDV par jour : recommandation météo (4 spots avec adresse d'accès) ou choix manuel (`day_plans`, GET/PUT /api/admin/planning/meeting-point) depuis le panneau doré sous la météo
+- Testé : testing_agent iteration_4 (backend 19/19 nouveaux, frontend 100 %)
+
+## Implemented (2026-06) — Admin v5 : Avis clients + Bilan hebdo
+- Avis clients (`engagement.py`) : job quotidien (≥ 9h Canaries) envoie aux sessions confirmées/réalisées de la veille un email FR/EN/ES avec lien `SITE_URL/avis/{review_token}` (bouton CTA https) ; page publique `/avis/:token` (note 1-5, commentaire, nom affiché, langue du client) ; POST unique par réservation (409) ; modération admin (onglet « Avis » : publier/masquer, mettre en avant, supprimer) ; section « Ils ont volé avec nous » sur la landing (GET /api/reviews, approuvés uniquement, favoris en premier, masquée si vide) ; colonne « Avis » dans les tables (Demander / Demandé / Reçu)
+- Bilan hebdo : job lundi ≥ 8h Canaries (dédupliqué dans `weekly_reports`) → email propriétaire : CA, sessions, occupation, commissions, jour par jour avec « Jour creux », CA par offre, semaine à venir (libre / confirmées / en attente), demandes en attente, note moyenne ; carte « Bilan hebdo » sur le dashboard (aperçu + envoi manuel) ; POST /api/admin/reports/weekly/send?to= pour test
+- `SITE_URL` ajouté dans backend/.env (à mettre à jour lors du déploiement sur le vrai domaine)
+- Testé : testing_agent iteration_5 (backend 17/17 nouveaux, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

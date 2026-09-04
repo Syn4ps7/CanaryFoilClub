@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Wind, Waves, Navigation, Thermometer, MapPin } from "lucide-react";
 import { adminApi } from "@/lib/adminApi";
+import MeetingPoint from "@/components/admin/MeetingPoint";
 
 const LEVEL = {
   ideal: { label: "Idéal", cls: "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" },
@@ -96,6 +97,7 @@ const WeatherCard = ({ day }) => {
           </div>
         </>
       )}
+      <MeetingPoint day={day} />
     </motion.section>
   );
 };

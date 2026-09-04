@@ -6,6 +6,7 @@ import KpiCard from "@/components/admin/KpiCard";
 import RevenueSplit from "@/components/admin/RevenueSplit";
 import BookingsTable from "@/components/admin/BookingsTable";
 import CapacitySettings from "@/components/admin/CapacitySettings";
+import WeeklyReportCard from "@/components/admin/WeeklyReportCard";
 
 const AdminDashboard = ({ onLogout }) => {
   const [stats, setStats] = useState(null);
@@ -36,6 +37,32 @@ const AdminDashboard = ({ onLogout }) => {
     try {
       await adminApi.patch(`/admin/bookings/${id}`, patch);
       toast.success(patch.status === "confirmed" ? "Réservation confirmée — email envoyé au client" : "Réservation mise à jour");
+      await load();
+    } catch (err) {
+      toast.error(formatApiError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendReviewRequest = async (id) => {
+    setBusyId(id);
+    try {
+      await adminApi.post(`/admin/bookings/${id}/review-request`);
+      toast.success("Demande d'avis envoyée au client");
+      await load();
+    } catch (err) {
+      toast.error(formatApiError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendReminder = async (id) => {
+    setBusyId(id);
+    try {
+      await adminApi.post(`/admin/bookings/${id}/reminder`);
+      toast.success("Rappel envoyé au client avec le point de rendez-vous");
       await load();
     } catch (err) {
       toast.error(formatApiError(err));
@@ -98,12 +125,13 @@ const AdminDashboard = ({ onLogout }) => {
               <KpiCard testId="kpi-occupancy-month" label="Taux d'occupation — mois" value={`${s.occupancy.month} %`} sub="Moyenne sur les jours du mois en cours" icon={Waves} delay={0.24} />
               <CapacitySettings settings={settings} onSaved={() => load()} />
             </div>
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-4">
               <RevenueSplit byOffer={s.by_offer} />
+              <WeeklyReportCard />
             </div>
           </div>
 
-          <BookingsTable bookings={s.recent} onUpdate={update} busyId={busyId} title="10 dernières réservations" />
+          <BookingsTable bookings={s.recent} onUpdate={update} onReminder={sendReminder} onReviewRequest={sendReviewRequest} busyId={busyId} title="10 dernières réservations" allSlotTimes={settings?.slot_times} />
         </>
       )}
     </div>

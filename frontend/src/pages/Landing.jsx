@@ -9,6 +9,7 @@ import Pillars from "@/components/Pillars";
 import Experiences from "@/components/Experiences";
 import Corporate from "@/components/Corporate";
 import Reseller from "@/components/Reseller";
+import Testimonials from "@/components/Testimonials";
 import BookingModal from "@/components/BookingModal";
 import Footer from "@/components/Footer";
 import ScrollTop from "@/components/ScrollTop";
@@ -76,6 +77,7 @@ export default function Landing() {
           <Pillars />
           <Experiences onBook={openBooking} />
           <Corporate onBook={openBooking} />
+          <Testimonials />
           <Reseller onBook={openBooking} />
         </main>
         <Footer />

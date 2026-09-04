@@ -3,7 +3,16 @@ from calendar import monthrange
 
 MAX_BOARDS = 6
 MAX_SLOTS = 6
-DEFAULT_SETTINGS = {"boards": 3, "slots_per_day": 6}
+DEFAULT_SLOT_TIMES = ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30"]
+DEFAULT_SETTINGS = {"boards": 3, "slots_per_day": 6, "slot_times": DEFAULT_SLOT_TIMES}
+
+
+def slot_label(settings: dict, slot) -> str | None:
+    if not slot:
+        return None
+    times = settings.get("slot_times") or DEFAULT_SLOT_TIMES
+    t = times[slot - 1] if slot - 1 < len(times) else None
+    return f"{t}" if t else f"Créneau {slot}"
 COMMISSION_RATE = 0.20
 REVENUE_STATUSES = {"confirmed", "completed"}
 CORPORATE_SLOTS = 3
@@ -154,4 +163,5 @@ def compute_planning(bookings: list[dict], day: date, settings: dict) -> dict:
         "unassigned": unassigned,
         "used": sum(min(g["used"], boards) for g in grid),
         "capacity": boards * slots_per_day,
+        "slot_times": (settings.get("slot_times") or DEFAULT_SLOT_TIMES)[:slots_per_day],
     }

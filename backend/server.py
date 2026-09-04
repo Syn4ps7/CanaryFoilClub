@@ -15,11 +15,15 @@ import logging
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 import uuid
+import asyncio
+import re
 from datetime import datetime, timezone, date, timedelta
 from emailer import notify_owner, notify_client, notify_confirmed
 from auth import login as auth_login, seed_admin, get_current_admin_factory, change_password
-from stats import compute_stats, compute_planning, compute_week, price_of, DEFAULT_SETTINGS, MAX_BOARDS, MAX_SLOTS
-from weather import get_weather
+from stats import compute_stats, compute_planning, compute_week, price_of, slot_label, DEFAULT_SETTINGS, DEFAULT_SLOT_TIMES, MAX_BOARDS, MAX_SLOTS
+from weather import get_weather, SPOT_ADDRESS
+from reminders import meeting_point, send_reminder, run_reminders, reminder_loop, periodic, REMINDER_HOUR, TZ as CANARY_TZ
+from engagement import send_review_request, run_review_requests, build_weekly_report, run_weekly_report, REVIEW_HOUR
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -55,6 +59,37 @@ class Booking(BookingCreate):
     amount: float = 0
     slot: Optional[int] = None
     confirmation_email_sent: Optional[bool] = None
+    reminder_sent: Optional[bool] = None
+    reminder_sent_at: Optional[str] = None
+    reminder_spot: Optional[str] = None
+    review_request_sent: Optional[bool] = None
+    review_request_sent_at: Optional[str] = None
+    review_id: Optional[str] = None
+
+
+class ReviewInput(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(min_length=3, max_length=800)
+    display_name: Optional[str] = Field(default=None, max_length=60)
+
+
+class ReviewUpdate(BaseModel):
+    approved: Optional[bool] = None
+    featured: Optional[bool] = None
+
+
+class Review(BaseModel):
+    id: str
+    booking_id: str
+    name: str
+    rating: int
+    comment: str
+    lang: str
+    experience: str
+    date: str
+    approved: bool = False
+    featured: bool = False
+    created_at: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -73,6 +108,25 @@ class BookingUpdate(BaseModel):
 class SettingsInput(BaseModel):
     boards: int = Field(ge=1, le=MAX_BOARDS)
     slots_per_day: int = Field(ge=1, le=MAX_SLOTS)
+    slot_times: Optional[List[str]] = None
+
+
+class MeetingPointInput(BaseModel):
+    date: str = Field(min_length=10, max_length=10)
+    spot: Optional[str] = Field(default=None, max_length=120)
+    address: Optional[str] = Field(default=None, max_length=300)
+
+
+TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+def _fit_slot_times(times: Optional[List[str]], n: int) -> List[str]:
+    times = [t for t in (times or []) if TIME_RE.match(t)][:n] or DEFAULT_SLOT_TIMES[:n]
+    while len(times) < n:
+        h, m = map(int, times[-1].split(":"))
+        total = min(h * 60 + m + 90, 23 * 60 + 30)
+        times.append(f"{total // 60:02d}:{total % 60:02d}")
+    return times
 
 
 class PasswordInput(BaseModel):
@@ -98,7 +152,9 @@ def _normalize(b: dict) -> dict:
 
 async def get_settings() -> dict:
     doc = await db.settings.find_one({"key": "config"}, {"_id": 0, "key": 0})
-    return {**DEFAULT_SETTINGS, **(doc or {})}
+    s = {**DEFAULT_SETTINGS, **(doc or {})}
+    s["slot_times"] = _fit_slot_times(s.get("slot_times"), s["slots_per_day"])
+    return s
 
 
 def _booking_filter(q: Optional[str], status: Optional[str], date_from: Optional[str], date_to: Optional[str]) -> dict:
@@ -167,7 +223,9 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
 
 @api_router.put("/admin/settings")
 async def admin_put_settings(input: SettingsInput, admin: dict = Depends(require_admin)):
-    await db.settings.update_one({"key": "config"}, {"$set": input.model_dump()}, upsert=True)
+    data = input.model_dump()
+    data["slot_times"] = _fit_slot_times(data.get("slot_times"), data["slots_per_day"])
+    await db.settings.update_one({"key": "config"}, {"$set": data}, upsert=True)
     return await get_settings()
 
 
@@ -247,6 +305,148 @@ async def admin_weather(day: Optional[str] = None, admin: dict = Depends(require
     return await get_weather(_parse_day(day).isoformat())
 
 
+@api_router.get("/admin/planning/meeting-point")
+async def admin_meeting_point(day: Optional[str] = None, admin: dict = Depends(require_admin)):
+    mp = await meeting_point(db, _parse_day(day).isoformat())
+    mp["options"] = [{"spot": k, "address": v} for k, v in SPOT_ADDRESS.items()]
+    mp["reminder_hour"] = REMINDER_HOUR
+    return mp
+
+
+@api_router.put("/admin/planning/meeting-point")
+async def admin_put_meeting_point(input: MeetingPointInput, admin: dict = Depends(require_admin)):
+    d = _parse_day(input.date).isoformat()
+    if not input.spot:
+        await db.day_plans.delete_one({"date": d})
+    else:
+        await db.day_plans.update_one(
+            {"date": d},
+            {"$set": {"date": d, "spot": input.spot.strip(), "address": (input.address or SPOT_ADDRESS.get(input.spot.strip(), "")).strip(),
+                      "updated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+    return await meeting_point(db, d)
+
+
+@api_router.post("/admin/bookings/{booking_id}/reminder", response_model=Booking)
+async def admin_send_reminder(booking_id: str, admin: dict = Depends(require_admin)):
+    raw = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not raw:
+        raise HTTPException(status_code=404, detail="Réservation introuvable")
+    if raw.get("status") not in ("confirmed", "completed"):
+        raise HTTPException(status_code=400, detail="Le rappel ne s'envoie qu'aux réservations confirmées")
+    sent = await send_reminder(db, Booking, _normalize(raw), await get_settings(), force=True)
+    if not sent:
+        raise HTTPException(status_code=502, detail="Envoi du rappel impossible (email injoignable)")
+    res = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    return _normalize(res)
+
+
+@api_router.post("/admin/reminders/run")
+async def admin_run_reminders(admin: dict = Depends(require_admin)):
+    return await run_reminders(db, Booking, get_settings, _normalize)
+
+
+# ---------- Reviews ----------
+
+def _first_name(name: str) -> str:
+    return (name or "").strip().split(" ")[0][:40] or "Client"
+
+
+@api_router.get("/reviews", response_model=List[Review])
+async def public_reviews(limit: int = Query(default=12, ge=1, le=50)):
+    docs = await db.reviews.find({"approved": True}, {"_id": 0}).sort([("featured", -1), ("created_at", -1)]).to_list(limit)
+    return docs
+
+
+@api_router.get("/reviews/{token}")
+async def review_context(token: str):
+    b = await db.bookings.find_one({"review_token": token}, {"_id": 0})
+    if not b:
+        raise HTTPException(status_code=404, detail="Lien invalide ou expiré")
+    existing = await db.reviews.find_one({"booking_id": b["id"]}, {"_id": 0})
+    return {"name": _first_name(b["name"]), "experience": b["experience"], "date": b["date"], "lang": b.get("lang", "fr"),
+            "already_reviewed": bool(existing), "review": existing}
+
+
+@api_router.post("/reviews/{token}", response_model=Review)
+async def submit_review(token: str, input: ReviewInput):
+    b = await db.bookings.find_one({"review_token": token}, {"_id": 0})
+    if not b:
+        raise HTTPException(status_code=404, detail="Lien invalide ou expiré")
+    if await db.reviews.find_one({"booking_id": b["id"]}):
+        raise HTTPException(status_code=409, detail="Un avis a déjà été déposé pour cette session")
+    review = Review(
+        id=str(uuid.uuid4()), booking_id=b["id"], name=(input.display_name or "").strip()[:60] or _first_name(b["name"]),
+        rating=input.rating, comment=input.comment.strip(), lang=b.get("lang", "fr"), experience=b["experience"], date=str(b["date"])[:10],
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    await db.reviews.insert_one(review.model_dump())
+    await db.bookings.update_one({"id": b["id"]}, {"$set": {"review_id": review.id}})
+    return review
+
+
+@api_router.get("/admin/reviews", response_model=List[Review])
+async def admin_reviews(admin: dict = Depends(require_admin)):
+    return await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+
+
+@api_router.patch("/admin/reviews/{review_id}", response_model=Review)
+async def admin_update_review(review_id: str, input: ReviewUpdate, admin: dict = Depends(require_admin)):
+    update = {k: v for k, v in input.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(status_code=400, detail="Aucune modification")
+    res = await db.reviews.find_one_and_update({"id": review_id}, {"$set": update}, projection={"_id": 0}, return_document=True)
+    if not res:
+        raise HTTPException(status_code=404, detail="Avis introuvable")
+    return res
+
+
+@api_router.delete("/admin/reviews/{review_id}")
+async def admin_delete_review(review_id: str, admin: dict = Depends(require_admin)):
+    res = await db.reviews.delete_one({"id": review_id})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Avis introuvable")
+    await db.bookings.update_one({"review_id": review_id}, {"$unset": {"review_id": ""}})
+    return {"ok": True}
+
+
+@api_router.post("/admin/bookings/{booking_id}/review-request", response_model=Booking)
+async def admin_send_review_request(booking_id: str, admin: dict = Depends(require_admin)):
+    raw = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not raw:
+        raise HTTPException(status_code=404, detail="Réservation introuvable")
+    if raw.get("status") not in ("confirmed", "completed"):
+        raise HTTPException(status_code=400, detail="La demande d'avis ne s'envoie qu'aux sessions confirmées ou réalisées")
+    sent = await send_review_request(db, Booking, _normalize(raw), force=True)
+    if not sent:
+        raise HTTPException(status_code=502, detail="Envoi impossible (email injoignable)")
+    return _normalize(await db.bookings.find_one({"id": booking_id}, {"_id": 0}))
+
+
+@api_router.post("/admin/reviews/run")
+async def admin_run_review_requests(admin: dict = Depends(require_admin)):
+    return await run_review_requests(db, Booking, _normalize)
+
+
+# ---------- Weekly report ----------
+
+@api_router.get("/admin/reports/weekly")
+async def admin_weekly_preview(admin: dict = Depends(require_admin)):
+    report = await build_weekly_report(db, await get_settings())
+    last = await db.weekly_reports.find_one({"week_start": report["week_start"]}, {"_id": 0})
+    report["last_sent"] = last
+    return report
+
+
+@api_router.post("/admin/reports/weekly/send")
+async def admin_weekly_send(to: Optional[EmailStr] = None, admin: dict = Depends(require_admin)):
+    res = await run_weekly_report(db, get_settings, force=True, to=to)
+    if not res["sent"]:
+        raise HTTPException(status_code=502, detail="Envoi du bilan impossible (email propriétaire injoignable)")
+    return res
+
+
 @api_router.patch("/admin/bookings/{booking_id}", response_model=Booking)
 async def update_booking(booking_id: str, input: BookingUpdate, admin: dict = Depends(require_admin)):
     update = {k: v for k, v in input.model_dump().items() if v is not None}
@@ -263,7 +463,7 @@ async def update_booking(booking_id: str, input: BookingUpdate, admin: dict = De
     res = await db.bookings.find_one_and_update({"id": booking_id}, {"$set": update}, projection={"_id": 0}, return_document=True)
     booking = Booking(**_normalize(res))
     if update.get("status") == "confirmed" and before.get("status") != "confirmed":
-        sent = await notify_confirmed(booking)
+        sent = await notify_confirmed(booking, slot_label(await get_settings(), booking.slot))
         await db.bookings.update_one({"id": booking_id}, {"$set": {"confirmation_email_sent": sent}})
         booking.confirmation_email_sent = sent
     return booking
@@ -289,8 +489,25 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup():
     await seed_admin(db)
+    await db.reviews.create_index("booking_id", unique=True)
+    await db.bookings.create_index("review_token")
+
+    async def reviews_job():
+        if datetime.now(CANARY_TZ).hour >= REVIEW_HOUR:
+            await run_review_requests(db, Booking, _normalize)
+
+    async def report_job():
+        await run_weekly_report(db, get_settings)
+
+    app.state.jobs = [
+        asyncio.create_task(reminder_loop(db, Booking, get_settings, _normalize)),
+        asyncio.create_task(periodic("reviews", reviews_job)),
+        asyncio.create_task(periodic("weekly-report", report_job)),
+    ]
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    for task in getattr(app.state, "jobs", []):
+        task.cancel()
     client.close()

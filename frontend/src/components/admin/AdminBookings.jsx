@@ -56,6 +56,32 @@ const AdminBookings = ({ onLogout }) => {
     }
   };
 
+  const sendReviewRequest = async (id) => {
+    setBusyId(id);
+    try {
+      await adminApi.post(`/admin/bookings/${id}/review-request`);
+      toast.success("Demande d'avis envoyée au client");
+      await load();
+    } catch (err) {
+      toast.error(formatApiError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendReminder = async (id) => {
+    setBusyId(id);
+    try {
+      await adminApi.post(`/admin/bookings/${id}/reminder`);
+      toast.success("Rappel envoyé au client avec le point de rendez-vous");
+      await load();
+    } catch (err) {
+      toast.error(formatApiError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const exportCsv = async () => {
     try {
       const res = await adminApi.get("/admin/bookings/export.csv", { params, responseType: "blob" });
@@ -118,7 +144,7 @@ const AdminBookings = ({ onLogout }) => {
         </p>
       </div>
 
-      <BookingsTable bookings={bookings} onUpdate={update} busyId={busyId} title="Résultats" slotsPerDay={settings?.slots_per_day} />
+      <BookingsTable bookings={bookings} onUpdate={update} onReminder={sendReminder} onReviewRequest={sendReviewRequest} busyId={busyId} title="Résultats" slotTimes={settings?.slot_times} />
     </div>
   );
 };

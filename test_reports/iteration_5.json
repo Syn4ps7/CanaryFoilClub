@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 5 tested end-to-end: (A) Review flow — POST /admin/bookings/{id}/review-request (404/400/200), public GET/POST /api/reviews/{token} (bad token 404, rating 6→422, comment<3→422, valid→201, second→409, already_reviewed on GET, booking.review_id set), public GET /api/reviews only approved sorted featured-first, PATCH /admin/reviews (400 empty, 404 unknown, toggling approved hides from public and back), DELETE /admin/reviews clears booking.review_id (unknown→404), admin without token→401. (B) POST /admin/reviews/run — sets 'yesterday' completed booking to sent≥1 and second run sent=0 (idempotent). (C) Weekly report — GET /admin/reports/weekly returns full shape (week_start=last Monday, week_end, week_label, revenue==sum(days.revenue), sessions, occupancy, commissions, empty_days, pending_total, by_offer with 3 keys, days[7] with label/sessions/revenue/occupancy, next_days[7] with pending, reviews, avg_rating, last_sent). POST /admin/reports/weekly/send?to=delivered@resend.dev→200/sent:true; default (OWNER_EMAIL bookings@canaryfoilclub.com)→502 (undeliverable, expected); invalid to→422; no token→401. Backend: 17/17 new tests pass. (D) Frontend: /avis/{TR_token} (fr) — form renders, review-star-4 shows 'Très bien' label, submit shows review-thanks, reload shows review-already; bad token shows review-invalid; Laura's already-used token in Spanish shows 'Tu opinión cuenta' + 'Ya dejaste una opinión'. Landing / — reviews-section rendered with reviews-average '5.0 · 1' and review-card-{Laura.id}. Admin — nav-reviews→admin-reviews-page, reviews-kpis, cards for both reviews, review-status shows 'À modérer'/'Publié', approve toggle flips to 'Publié' with toast, feature toggle shows 'En avant'. Delete of TEST review OK (Laura preserved). Bookings table Avis column: Laura row shows 'Reçu' (booking-review-received), delivered@resend.dev confirmed row without review shows 'Demander' (booking-review-request); clicking Demander → toast 'Demande d'avis envoyée au client'. Weekly-report-card renders in dashboard with 4 mini KPIs, weekly-report-status shows 'Envoi automatique chaque lundi à 8h'; clicking weekly-report-send with OWNER_EMAIL produced a Cloudflare 5xx wrapper (ingress artefact) — request did hit 502 backend but body was rewritten to Cloudflare HTML so the app toast surfaced the raw origin-error text instead of the French 'Envoi du bilan impossible…'. Backend 502 with French detail is verified separately via direct API call.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/reports/weekly/send (default OWNER_EMAIL)", "issue": "Backend correctly returns 502 with French JSON detail; the Kubernetes ingress/Cloudflare occasionally rewrites the 502 body to a raw HTML error page. Toast in UI then shows the Cloudflare text instead of the French message. Env artefact, not a code bug (same as iter 4 remark)."},
+      {"endpoint": "POST /api/admin/bookings/{id}/review-request", "issue": "Intermittently returns 502 upstream from integrations.emergentagent.com even for delivered@resend.dev (observed 503 in backend log). engagement.ensure_review_token persists the token BEFORE calling the emailer so the /avis/{token} link is usable even when the email itself failed — behaviour acceptable but a subsequent retry from admin will regenerate review_request_sent."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "AdminReviews initial load", "issue": "On first navigation via nav-reviews click immediately after login, the page occasionally renders with empty cards and 'Note moyenne —/5 · 0 publié' for ~1s before /admin/reviews resolves (adminApi race with token propagation). A hard reload or direct navigation to /admin/reviews shows all cards correctly. Consider a loading skeleton or awaiting the initial request before rendering the empty-KPI header.", "affected_selectors": ["admin-reviews-page", "reviews-kpis", "admin-review-*"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration5.py",
+    "/app/test_reports/pytest/iter5.xml"
+  ],
+  "action_items": [
+    "(Optional) In AdminReviews.jsx, avoid rendering the KPI header until `reviews !== null` (currently uses `reviews?.filter` yielding 0 during the null→data race).",
+    "(Optional) In engagement.ensure_review_token, consider generating the token only AFTER a successful email send to avoid leaving a usable /avis link when the notification failed. Trade-off: current design is retry-friendly and the token itself is harmless without the email."
+  ],
+  "critical_code_review_comments": [
+    "server.py Review pydantic model has `created_at` declared twice (line 92 str, line 93 datetime) — the datetime declaration overrides the str one, so field type is datetime. Since we insert `created_at=datetime.now(timezone.utc).isoformat()` (a str) in submit_review, Pydantic will accept it as datetime because ISO strings parse. Public GET /api/reviews returns raw Mongo docs (bypasses Review model serialization since motor returns dicts and FastAPI serializes them as-is), so downstream frontend sees ISO strings. Works, but the duplicate field declaration is a lurking footgun — clean it up.",
+    "engagement.py build_weekly_report: `raw = db.bookings.find({... '$lte': next_end.isoformat() + '~'})` — the trailing '~' hack is a lexicographic workaround to include full ISO dates that may contain a time component. Fine but non-obvious; a comment would help.",
+    "engagement.py send_review_request always sets `review_request_sent: <bool>` including False on failure. Combined with the run() filter `review_request_sent: {$ne: True}`, retries work — good.",
+    "AdminReviews.jsx: renders KPI header from `reviews?.filter(...)` (0 when null) instead of hiding until loaded — causes the transient 0-state seen in test (see integration_issues).",
+    "Testimonials.jsx returns null when reviews.length===0 — correct, avoids showing an empty section on landing. Good.",
+    "WeeklyReportCard.jsx: the send handler passes no `to` param, so it always targets OWNER_EMAIL. For preview/staging where OWNER_EMAIL is undeliverable, this always produces an error toast — expected per spec, but worth surfacing in the UI hint (e.g. show OWNER_EMAIL address next to the button)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration5.py"
+  ],
+  "success_rate": {"backend": "100% (17/17 new)", "frontend": "100% of tested flows"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "During tests: one TEST Auto FE review was created via the public /avis/{token} form on the TEST Regression booking (delivered@resend.dev), then deleted via admin. TR booking date/status/review_* fields temporarily mutated in a few tests and restored via pymongo teardown. Final state verified: Laura G. review is the only review, approved=True featured=True; TR booking is confirmed with all review_* fields unset.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All iter 5 endpoints covered in /app/backend/tests/test_iteration5.py. Note: OWNER_EMAIL (bookings@canaryfoilclub.com) is undeliverable so weekly-report send without ?to always 502s (Cloudflare may wrap the body). Use ?to=delivered@resend.dev for a 200. Laura Gomez's booking has lang=es and her review_token is already used (already_reviewed=true) — good for testing the Spanish 'already' state. TR Regression booking is the working canvas for review-request/token flows. review_token is persisted BEFORE send in engagement.ensure_review_token, so it remains usable even if the email send fails intermittently.",
+  "rca of the issue": "N/A — no functional bug found. The AdminReviews transient empty state is a UX/load-order polish item, and the weekly-report Cloudflare wrapping is an environment artefact."
+}

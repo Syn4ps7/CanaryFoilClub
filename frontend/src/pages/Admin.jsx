@@ -6,6 +6,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminBookings from "@/components/admin/AdminBookings";
 import AdminPlanning from "@/components/admin/AdminPlanning";
+import AdminReviews from "@/components/admin/AdminReviews";
 
 export default function Admin() {
   const [auth, setAuth] = useState(null);
@@ -45,6 +46,7 @@ export default function Admin() {
         <Route index element={<AdminDashboard onLogout={logout} />} />
         <Route path="bookings" element={<AdminBookings onLogout={logout} />} />
         <Route path="planning" element={<AdminPlanning onLogout={logout} />} />
+        <Route path="reviews" element={<AdminReviews onLogout={logout} />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </AdminLayout>
