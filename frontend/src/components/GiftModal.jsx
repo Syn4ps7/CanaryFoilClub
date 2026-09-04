@@ -4,6 +4,7 @@ import { X, Gift } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import TermsCheckbox from "./TermsCheckbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PRICES = { discovery: 145, duo: 280 };
@@ -17,17 +18,23 @@ const GiftModal = ({ open, onClose }) => {
   const { t, lang } = useLanguage();
   const [form, setForm] = useState(EMPTY);
   const [sending, setSending] = useState(false);
+  const [terms, setTerms] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const value = form.experience === "duo" ? PRICES.duo : PRICES.discovery * Number(form.participants || 1);
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!terms) {
+      toast.error(t.footer.termsRequired);
+      return;
+    }
     setSending(true);
     try {
       await axios.post(`${API}/vouchers`, { ...form, participants: Number(form.participants), lang });
       toast.success(t.gift.success);
       onClose();
       setForm(EMPTY);
+      setTerms(false);
     } catch {
       toast.error(t.toast.error);
     } finally {
@@ -95,6 +102,7 @@ const GiftModal = ({ open, onClose }) => {
                   <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold">{t.gift.value}</span>
                   <span data-testid="gift-value" className="font-outfit text-2xl font-semibold tabular-nums text-white">{value} €</span>
                 </div>
+                <TermsCheckbox checked={terms} onChange={setTerms} testId="gift-terms-checkbox" accent="#D4AF37" />
                 <motion.button
                   data-testid="gift-form-submit"
                   type="submit"

@@ -1,0 +1,21 @@
+{
+  "summary": "Iteration 14 frontend-only test of CGV/Terms modal centering fix and mandatory acceptance checkbox. All specified flows PASS end-to-end. Footer CGV opens a centered Terms modal at 1920x800, 1366x650 and 390x844 (bounding box within viewport, |center - vp/2| = 0 in all three cases), title visible, Escape closes it. Booking flow: hero-cta-book-button opens booking side panel with an unchecked booking-terms-checkbox above booking-form-submit; submit without check triggers HTML5 required validation and does NOT POST /api/booking (0 requests). booking-terms-checkbox-link opens the terms-modal above the side panel, perfectly centered on the full 1920 viewport (center_x=960); terms-close closes it while booking panel stays open. After checking the checkbox, submit succeeds with POST /api/booking (1 request, ~10s). Gift flow (#gift → gift-cta-button): identical behaviour — gift-terms-checkbox blocks submit (0 POST /api/vouchers), gift-terms-checkbox-link renders in gold rgb(212,175,55) and opens centered terms-modal above panel, panel stays open on close, submit after check produces 1 POST /api/vouchers. i18n: EN checkbox text = 'I have read and accept the Terms & Conditions', ES = 'He leído y acepto las Condiciones Generales'. Admin change-password modal opens centered (box within 1920x1080, center_x=960) and change-password-close closes it.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TermsModal correctly uses a fixed inset-0 flex centering wrapper with pointer-events-none on the outer div and pointer-events-auto on the framer-motion card, so the framer y transform no longer fights Tailwind translate — centering is now robust across viewports.",
+    "z-index stack (overlay 110, card 111) is above booking/gift side panels (90/95) — verified visually and via bounding-box.",
+    "TermsCheckbox is nested inside the parent form and uses HTML5 `required`; on browsers this blocks submit BEFORE the JS toast fires. The 'termsRequired' toast therefore only shows when JS submit path is reached (e.g. programmatic). Both outcomes satisfy the spec (no POST occurs). Consider `noValidate` on the form + custom messaging for a consistent UX, but not blocking.",
+    "AnimatePresence exit animation makes the terms modal linger ~450ms; tests must wait_for_selector(state='hidden') rather than a fixed 600ms."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only)", "frontend": "100% (7/7 scenarios: footer terms @3 viewports, booking flow, gift flow, i18n EN/ES, admin change-password)"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "Two real submissions to delivered@resend.dev were made during testing: 1 booking and 1 voucher (Resend sandbox address, no user impact).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Public base URL https://canary-foil-club.preview.emergentagent.com. Language testids: lang-switcher-fr|en|es. When clicking booking-terms-checkbox inside the label, Playwright's page.check() sometimes reports 'state did not change' due to double-toggling; use JS click via page.evaluate or click the label span instead. Booking POST takes 8-12s (email send), voucher POST ~5-10s.",
+  "rca of the issue": "Original bug: motion.div's transform: translate() overrode Tailwind's -translate-x-1/2 -translate-y-1/2 used for centering, so the modal appeared off-screen. Fix wraps the motion.div in a plain 'fixed inset-0 flex items-center justify-center' container with pointer-events-none, and gives the card pointer-events-auto. Framer only animates opacity/y offset now — no positional transform conflict. Verified centered at 1920/1366/390 and above z-90 side panels."
+}

@@ -48,13 +48,14 @@ const ChangePassword = ({ open, onClose }) => {
       {open && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} className="fixed inset-0 z-[90] bg-abyss/80 backdrop-blur-sm" />
+          <div className="pointer-events-none fixed inset-0 z-[95] flex items-center justify-center p-4">
           <motion.div
             data-testid="change-password-modal"
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed left-1/2 top-1/2 z-[95] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-white/10 bg-panel p-7 sm:p-8"
+            className="pointer-events-auto w-full max-w-md rounded-3xl border border-white/10 bg-panel p-7 sm:p-8"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -82,6 +83,7 @@ const ChangePassword = ({ open, onClose }) => {
               </motion.button>
             </form>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

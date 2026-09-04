@@ -4,6 +4,7 @@ import { X, Gift, CheckCircle2, AlertCircle } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import TermsCheckbox from "./TermsCheckbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -27,6 +28,7 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
     voucher_code: "",
   });
   const [voucher, setVoucher] = useState(null);
+  const [terms, setTerms] = useState(false);
 
   useEffect(() => {
     const code = form.voucher_code.trim();
@@ -52,6 +54,10 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!terms) {
+      toast.error(t.footer.termsRequired);
+      return;
+    }
     setSending(true);
     try {
       await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), voucher_code: form.voucher_code.trim() || undefined, lang });
@@ -59,6 +65,7 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
       onClose();
       setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "", voucher_code: "" });
       setVoucher(null);
+      setTerms(false);
     } catch (err) {
       const detail = err?.response?.data?.detail;
       toast.error(typeof detail === "string" ? detail : t.toast.error);
@@ -194,6 +201,7 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
                     />
                   )}
                 </div>
+                <TermsCheckbox checked={terms} onChange={setTerms} testId="booking-terms-checkbox" />
                 <motion.button
                   data-testid="booking-form-submit"
                   type="submit"

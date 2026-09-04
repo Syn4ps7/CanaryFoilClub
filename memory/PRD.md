@@ -111,6 +111,12 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - CGV : `i18n/terms.js` (8 articles FR/EN/ES, texte fourni par l'utilisateur), `TermsModal.jsx` (data-lenis-prevent, Esc), lien « CGV » dans le footer (`footer.terms`)
 - Testé : testing_agent iteration_13 (backend 6/6, frontend 100 %)
 
+## Bug fix + Case CGV (2026-06)
+- Bug : modal CGV décentrée/coupée (transform framer-motion écrasait les classes -translate-x/y). Fix : conteneur fixed inset-0 flex centré (wrapper pointer-events-none), z-110/111 pour passer au-dessus des panneaux latéraux ; même correctif sur la modal « Changer le mot de passe »
+- Case « J'ai lu et j'accepte les CGV » obligatoire (`TermsCheckbox.jsx`, required + toast) dans BookingModal et GiftModal, lien inline ouvrant la modal CGV ; clés `footer.acceptTerms / termsShort / termsRequired` FR/EN/ES
+- Testé : testing_agent iteration_14 (frontend 7/7, 3 viewports)
+- Âge minimum passé de 16 à 14 ans dans les CGV (FR/EN/ES, article 3) — vérifié par screenshot
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)
