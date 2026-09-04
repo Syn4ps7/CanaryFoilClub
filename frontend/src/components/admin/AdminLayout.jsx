@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound, Star } from "lucide-react";
+import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound, Star, Gift } from "lucide-react";
 import ChangePassword from "@/components/admin/ChangePassword";
 
 const NAV = [
@@ -8,6 +8,7 @@ const NAV = [
   { to: "/admin/bookings", label: "Réservations", icon: ListOrdered, id: "nav-bookings" },
   { to: "/admin/planning", label: "Planning", icon: CalendarRange, id: "nav-planning" },
   { to: "/admin/reviews", label: "Avis", icon: Star, id: "nav-reviews" },
+  { to: "/admin/vouchers", label: "Bons cadeaux", icon: Gift, id: "nav-vouchers" },
 ];
 
 const AdminLayout = ({ admin, onLogout, children }) => {

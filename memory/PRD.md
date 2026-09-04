@@ -70,6 +70,13 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - `SITE_URL` ajouté dans backend/.env (à mettre à jour lors du déploiement sur le vrai domaine)
 - Testé : testing_agent iteration_5 (backend 17/17 nouveaux, frontend 100 %)
 
+## Implemented (2026-06) — Admin v6 : Bons cadeaux + Réponse aux avis
+- Bons cadeaux (`vouchers.py`) : section « Offrir un vol » + modal (acheteur, destinataire, message, Discovery ×1-3 / Duo) → POST /api/vouchers (statut pending, code unique CFC-XXXX-XXXX, email propriétaire) ; activation admin (statut paid → paid_at, expires_at +365 j, email FR/EN/ES à l'acheteur avec le code) ; GET /api/vouchers/check/{code} public ; champ « Code cadeau » dans le formulaire de réservation avec validation live → remise appliquée (`booking.discount`, `price_of` = base − remise) et bon marqué redeemed ; onglet admin « Bons cadeaux » (activer / renvoyer / annuler / remettre en circulation) ; CA « Bons cadeaux » dans la répartition (encaissé à l'activation) ; colonnes CSV bon_cadeau / remise_eur
+- Réponse aux avis : PATCH /api/admin/reviews/{id} {reply} (replied_at) ; ReplyBox dans l'onglet Avis ; bloc « Réponse de Canary Foil Club » sur les cartes de la landing
+- Fix régression : champ `created_at` du modèle Booking restauré (POST /api/booking plantait) ; sérialisation des avis dont created_at est un datetime
+- GitHub : l'utilisateur doit utiliser « Save to GitHub » (dépôt Syn4ps7/CanaryFoilClub)
+- Testé : testing_agent iteration_6 (backend 23/23, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

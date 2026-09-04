@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import re
 import ipaddress
@@ -527,4 +528,121 @@ async def send_weekly_report(report: dict, to: str | None = None) -> bool:
         return True
     except Exception as e:
         logger.error(f"Weekly report failed: {e}")
+        return False
+
+
+VOUCHER_EMAIL = {
+    "fr": {
+        "subject": "Votre bon cadeau eFoil est prêt",
+        "title": "{name}, votre bon cadeau est activé.",
+        "intro": "Merci pour votre confiance. Voici le code à transmettre à la personne de votre choix : il suffit de le saisir dans le formulaire de réservation du site pour offrir ce vol au-dessus de l'Atlantique.",
+        "lbl_code": "Code cadeau",
+        "lbl_for": "Pour",
+        "lbl_experience": "Expérience",
+        "lbl_value": "Valeur",
+        "lbl_valid": "Valable jusqu'au",
+        "lbl_message": "Votre message",
+        "note": "Le bon cadeau est utilisable une seule fois, pour une réservation sur le site Canary Foil Club, selon disponibilités et conditions de mer.",
+        "question": 'Une question ? Notre ligne WhatsApp VIP : <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Ténérife. Bon cadeau nominatif.",
+    },
+    "en": {
+        "subject": "Your eFoil gift voucher is ready",
+        "title": "{name}, your gift voucher is active.",
+        "intro": "Thank you for your trust. Here is the code to pass on to the lucky one: they simply enter it in the booking form on our website to enjoy this flight above the Atlantic.",
+        "lbl_code": "Gift code",
+        "lbl_for": "For",
+        "lbl_experience": "Experience",
+        "lbl_value": "Value",
+        "lbl_valid": "Valid until",
+        "lbl_message": "Your message",
+        "note": "The voucher can be used once, for a booking on the Canary Foil Club website, subject to availability and sea conditions.",
+        "question": 'Questions? Our VIP WhatsApp line: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Personal gift voucher.",
+    },
+    "es": {
+        "subject": "Tu bono regalo eFoil está listo",
+        "title": "{name}, tu bono regalo está activado.",
+        "intro": "Gracias por tu confianza. Aquí tienes el código para la persona elegida: solo tiene que introducirlo en el formulario de reserva de la web para disfrutar de este vuelo sobre el Atlántico.",
+        "lbl_code": "Código regalo",
+        "lbl_for": "Para",
+        "lbl_experience": "Experiencia",
+        "lbl_value": "Valor",
+        "lbl_valid": "Válido hasta",
+        "lbl_message": "Tu mensaje",
+        "note": "El bono se puede usar una sola vez, para una reserva en la web de Canary Foil Club, según disponibilidad y condiciones del mar.",
+        "question": '¿Dudas? Nuestra línea VIP de WhatsApp: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Bono regalo nominativo.",
+    },
+}
+
+
+def build_voucher_email(v: dict) -> tuple[str, str]:
+    lang = v.get("lang") if v.get("lang") in VOUCHER_EMAIL else "fr"
+    s = VOUCHER_EMAIL[lang]
+    exp = CLIENT_EXP_LABELS[lang].get(v["experience"], v["experience"])
+    valid = datetime.fromisoformat(v["expires_at"]).strftime("%d/%m/%Y") if v.get("expires_at") else "—"
+    rows = [
+        _row(s["lbl_for"], escape(v["recipient_name"])),
+        _row(s["lbl_experience"], escape(f"{exp} · {v['participants']} pers.")),
+        _row(s["lbl_value"], escape(f"{v['value']:.0f} €")),
+        _row(s["lbl_valid"], escape(valid)),
+    ]
+    if v.get("message"):
+        rows.append(_row(s["lbl_message"], escape(v["message"])))
+    html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050b14;padding:32px 16px"><tr><td align="center">'
+        '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#0f1c30;border:1px solid #1e2f4a;border-radius:16px;padding:32px"><tr><td>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:4px;color:#d4af37;text-transform:uppercase;margin:0 0 8px">Canary Foil Club — Gift</p>'
+        f'<h1 style="font-family:Arial,sans-serif;font-size:22px;color:#f8fafc;margin:0 0 12px">{escape(s["title"].format(name=v["buyer_name"]))}</h1>'
+        f'<p style="font-family:Arial,sans-serif;font-size:14px;line-height:22px;color:#94a3b8;margin:0 0 24px">{escape(s["intro"])}</p>'
+        f'<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#00f0ff;text-transform:uppercase;margin:0 0 8px;text-align:center">{escape(s["lbl_code"])}</p>'
+        f'<p style="font-family:Courier New,monospace;font-size:28px;letter-spacing:4px;font-weight:bold;color:#f8fafc;background:#0a1322;border:1px dashed #d4af37;border-radius:12px;padding:18px;text-align:center;margin:0 0 24px">{escape(v["code"])}</p>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{"".join(rows)}</table>'
+        f'<p style="font-family:Arial,sans-serif;font-size:12px;line-height:20px;color:#64748b;margin:24px 0 0">{escape(s["note"])}</p>'
+        f'<p style="font-family:Arial,sans-serif;font-size:13px;color:#f8fafc;margin:20px 0 0">{s["question"]}</p>'
+        f'<p style="font-family:Arial,sans-serif;font-size:11px;color:#64748b;margin:28px 0 0">{escape(s["footer"])}</p>'
+        '</td></tr></table></td></tr></table>'
+    )
+    return f"Canary Foil Club — {s['subject']}", html
+
+
+async def notify_voucher_buyer(v: dict) -> bool:
+    try:
+        subject, html = build_voucher_email(v)
+        email_id = await send_email(to=v["buyer_email"], subject=subject, html=html)
+        logger.info(f"Voucher email sent (id={email_id}) to {v['buyer_email']} code={v['code']}")
+        return True
+    except Exception as e:
+        logger.error(f"Voucher email failed for {v['id']}: {e}")
+        return False
+
+
+async def notify_owner_voucher(v: dict) -> bool:
+    if not OWNER_EMAIL:
+        return False
+    exp = EXPERIENCE_LABELS.get(v["experience"], v["experience"])
+    rows = "".join([
+        _row("Code", escape(v["code"])),
+        _row("Acheteur", escape(v["buyer_name"])),
+        _row("Email", f'<a href="mailto:{escape(v["buyer_email"])}" style="color:#00f0ff">{escape(v["buyer_email"])}</a>'),
+        _row("Pour", escape(v["recipient_name"])),
+        _row("Expérience", escape(f"{exp} · {v['participants']} pers.")),
+        _row("Valeur", escape(f"{v['value']:.0f} €")),
+        _row("Message", escape(v.get("message") or "—")),
+    ])
+    html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050b14;padding:32px 16px"><tr><td align="center">'
+        '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#0f1c30;border:1px solid #1e2f4a;border-radius:16px;padding:32px"><tr><td>'
+        '<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:4px;color:#d4af37;text-transform:uppercase;margin:0 0 8px">Canary Foil Club</p>'
+        '<h1 style="font-family:Arial,sans-serif;font-size:22px;color:#f8fafc;margin:0 0 4px">Nouvelle demande de bon cadeau</h1>'
+        '<p style="font-family:Arial,sans-serif;font-size:13px;color:#94a3b8;margin:0 0 24px">À activer depuis le dashboard une fois le paiement reçu — l\'acheteur recevra alors son code par email.</p>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{rows}</table>'
+        '</td></tr></table></td></tr></table>'
+    )
+    try:
+        await send_email(to=OWNER_EMAIL, subject=f"Bon cadeau demandé — {v['value']:.0f} € ({v['buyer_name']})", html=html, reply_to=v["buyer_email"])
+        return True
+    except Exception as e:
+        logger.error(f"Owner voucher notification failed: {e}")
         return False

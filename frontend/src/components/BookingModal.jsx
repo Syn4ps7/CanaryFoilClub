@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Gift, CheckCircle2, AlertCircle } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -24,7 +24,24 @@ const BookingModal = ({ open, preset, onClose }) => {
     notes: "",
     partner: false,
     partner_name: "",
+    voucher_code: "",
   });
+  const [voucher, setVoucher] = useState(null);
+
+  useEffect(() => {
+    const code = form.voucher_code.trim();
+    if (code.length < 8) {
+      setVoucher(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      axios
+        .get(`${API}/vouchers/check/${encodeURIComponent(code)}`)
+        .then(({ data }) => setVoucher(data))
+        .catch(() => setVoucher({ valid: false, reason: "not_found" }));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [form.voucher_code]);
 
   useEffect(() => {
     if (open && preset) setForm((f) => ({ ...f, experience: preset }));
@@ -36,12 +53,14 @@ const BookingModal = ({ open, preset, onClose }) => {
     e.preventDefault();
     setSending(true);
     try {
-      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), lang });
+      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), voucher_code: form.voucher_code.trim() || undefined, lang });
       toast.success(t.toast.success);
       onClose();
-      setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "" });
+      setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "", voucher_code: "" });
+      setVoucher(null);
     } catch (err) {
-      toast.error(t.toast.error);
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : t.toast.error);
     } finally {
       setSending(false);
     }
@@ -131,6 +150,23 @@ const BookingModal = ({ open, preset, onClose }) => {
                 <div>
                   <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">{t.booking.notes}</label>
                   <textarea data-testid="booking-input-notes" rows={3} value={form.notes} onChange={set("notes")} className={`${inputCls} resize-none`} />
+                </div>
+                <div>
+                  <label className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400"><Gift size={11} className="text-gold" /> {t.booking.voucher}</label>
+                  <input
+                    data-testid="booking-input-voucher"
+                    value={form.voucher_code}
+                    onChange={(e) => setForm((f) => ({ ...f, voucher_code: e.target.value.toUpperCase() }))}
+                    className={`${inputCls} font-mono tracking-[0.2em] ${voucher ? (voucher.valid ? "border-emerald-400/60" : "border-red-400/60") : ""}`}
+                    placeholder="CFC-XXXX-XXXX"
+                    maxLength={14}
+                  />
+                  {voucher && (
+                    <p data-testid="booking-voucher-status" className={`mt-1.5 flex items-center gap-1.5 text-xs ${voucher.valid ? "text-emerald-300" : "text-red-300"}`}>
+                      {voucher.valid ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                      {voucher.valid ? t.booking.voucherOk.replace("{value}", Math.round(voucher.value)) : t.booking.voucherBad[voucher.reason] || t.booking.voucherBad.not_found}
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-xl border border-white/10 bg-deep/60 p-4">
                   <label className="flex cursor-pointer items-start gap-3">

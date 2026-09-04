@@ -24,6 +24,8 @@ from stats import compute_stats, compute_planning, compute_week, price_of, slot_
 from weather import get_weather, SPOT_ADDRESS
 from reminders import meeting_point, send_reminder, run_reminders, reminder_loop, periodic, REMINDER_HOUR, TZ as CANARY_TZ
 from engagement import send_review_request, run_review_requests, build_weekly_report, run_weekly_report, REVIEW_HOUR
+from vouchers import gen_code, voucher_value, voucher_state, find_voucher, redeem_voucher, mark_paid_fields, VOUCHER_EXPERIENCES
+from emailer import notify_voucher_buyer, notify_owner_voucher
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -48,6 +50,7 @@ class BookingCreate(BaseModel):
     notes: Optional[str] = None
     partner: bool = False
     partner_name: Optional[str] = Field(default=None, max_length=120)
+    voucher_code: Optional[str] = Field(default=None, max_length=20)
     lang: str = "fr"
 
 
@@ -57,6 +60,7 @@ class Booking(BookingCreate):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     status: str = "pending"
     amount: float = 0
+    discount: float = 0
     slot: Optional[int] = None
     confirmation_email_sent: Optional[bool] = None
     reminder_sent: Optional[bool] = None
@@ -65,6 +69,7 @@ class Booking(BookingCreate):
     review_request_sent: Optional[bool] = None
     review_request_sent_at: Optional[str] = None
     review_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ReviewInput(BaseModel):
@@ -76,6 +81,7 @@ class ReviewInput(BaseModel):
 class ReviewUpdate(BaseModel):
     approved: Optional[bool] = None
     featured: Optional[bool] = None
+    reply: Optional[str] = Field(default=None, max_length=600)
 
 
 class Review(BaseModel):
@@ -89,7 +95,38 @@ class Review(BaseModel):
     date: str
     approved: bool = False
     featured: bool = False
+    reply: Optional[str] = None
+    replied_at: Optional[str] = None
     created_at: str
+
+
+class VoucherCreate(BaseModel):
+    buyer_name: str = Field(min_length=2, max_length=120)
+    buyer_email: EmailStr
+    recipient_name: str = Field(min_length=2, max_length=120)
+    message: Optional[str] = Field(default=None, max_length=300)
+    experience: str = "discovery"
+    participants: int = Field(default=1, ge=1, le=3)
+    lang: str = "fr"
+
+
+class Voucher(VoucherCreate):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    code: str
+    value: float
+    status: str = "pending"
+    created_at: str
+    paid_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    redeemed_at: Optional[str] = None
+    redeemed_booking_id: Optional[str] = None
+    email_sent: Optional[bool] = None
+
+
+class VoucherUpdate(BaseModel):
+    status: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -185,6 +222,10 @@ async def create_booking(input: BookingCreate):
     if input.lang not in ("fr", "en", "es"):
         input.lang = "fr"
     booking = Booking(**input.model_dump())
+    if input.voucher_code:
+        v = await redeem_voucher(db, input.voucher_code, booking.id)
+        booking.voucher_code = v["code"]
+        booking.discount = float(v["value"])
     booking.amount = price_of(booking.model_dump())
     doc = booking.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
@@ -232,7 +273,10 @@ async def admin_put_settings(input: SettingsInput, admin: dict = Depends(require
 @api_router.get("/admin/stats")
 async def admin_stats(admin: dict = Depends(require_admin)):
     bookings = await db.bookings.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
-    stats = compute_stats(bookings, await get_settings())
+    vouchers = await db.vouchers.find({}, {"_id": 0}).to_list(5000)
+    stats = compute_stats(bookings, await get_settings(), vouchers)
+    stats["vouchers"] = {"pending": sum(1 for v in vouchers if v["status"] == "pending"), "active": sum(1 for v in vouchers if v["status"] == "paid"),
+                         "outstanding": sum(float(v["value"]) for v in vouchers if v["status"] == "paid")}
     stats["recent"] = [_normalize(b) for b in bookings[:10]]
     stats["total_bookings"] = len(bookings)
     return stats
@@ -265,13 +309,14 @@ async def admin_bookings_csv(
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(["id", "date_session", "creneau", "statut", "client", "email", "telephone", "experience", "participants",
-                "montant_eur", "partenaire", "nom_partenaire", "commission_eur", "hotel", "langue", "notes", "cree_le"])
+                "montant_eur", "bon_cadeau", "remise_eur", "partenaire", "nom_partenaire", "commission_eur", "hotel", "langue", "notes", "cree_le"])
     for b in bookings:
         b = _normalize(b)
         eligible = b.get("partner") and b.get("status") in ("confirmed", "completed")
         w.writerow([
             b["id"], b.get("date"), b.get("slot") or "", b.get("status"), b.get("name"), b.get("email"), b.get("phone"),
             b.get("experience"), b.get("participants"), f"{b['amount']:.2f}".replace(".", ","),
+            b.get("voucher_code") or "", f"{float(b.get('discount') or 0):.2f}".replace(".", ","),
             "oui" if b.get("partner") else "non", b.get("partner_name") or "",
             f"{b['amount'] * 0.2:.2f}".replace(".", ",") if eligible else "0,00",
             b.get("hotel") or "", b.get("lang"), (b.get("notes") or "").replace("\n", " "), b["created_at"].isoformat(),
@@ -349,6 +394,13 @@ async def admin_run_reminders(admin: dict = Depends(require_admin)):
 
 # ---------- Reviews ----------
 
+def _norm_review(r: dict) -> dict:
+    for k in ("created_at", "replied_at"):
+        if isinstance(r.get(k), datetime):
+            r[k] = r[k].isoformat()
+    return r
+
+
 def _first_name(name: str) -> str:
     return (name or "").strip().split(" ")[0][:40] or "Client"
 
@@ -356,7 +408,7 @@ def _first_name(name: str) -> str:
 @api_router.get("/reviews", response_model=List[Review])
 async def public_reviews(limit: int = Query(default=12, ge=1, le=50)):
     docs = await db.reviews.find({"approved": True}, {"_id": 0}).sort([("featured", -1), ("created_at", -1)]).to_list(limit)
-    return docs
+    return [_norm_review(d) for d in docs]
 
 
 @api_router.get("/reviews/{token}")
@@ -366,7 +418,7 @@ async def review_context(token: str):
         raise HTTPException(status_code=404, detail="Lien invalide ou expiré")
     existing = await db.reviews.find_one({"booking_id": b["id"]}, {"_id": 0})
     return {"name": _first_name(b["name"]), "experience": b["experience"], "date": b["date"], "lang": b.get("lang", "fr"),
-            "already_reviewed": bool(existing), "review": existing}
+            "already_reviewed": bool(existing), "review": _norm_review(existing) if existing else None}
 
 
 @api_router.post("/reviews/{token}", response_model=Review)
@@ -388,7 +440,7 @@ async def submit_review(token: str, input: ReviewInput):
 
 @api_router.get("/admin/reviews", response_model=List[Review])
 async def admin_reviews(admin: dict = Depends(require_admin)):
-    return await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [_norm_review(d) for d in await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)]
 
 
 @api_router.patch("/admin/reviews/{review_id}", response_model=Review)
@@ -396,10 +448,13 @@ async def admin_update_review(review_id: str, input: ReviewUpdate, admin: dict =
     update = {k: v for k, v in input.model_dump().items() if v is not None}
     if not update:
         raise HTTPException(status_code=400, detail="Aucune modification")
+    if "reply" in update:
+        update["reply"] = update["reply"].strip() or None
+        update["replied_at"] = datetime.now(timezone.utc).isoformat() if update["reply"] else None
     res = await db.reviews.find_one_and_update({"id": review_id}, {"$set": update}, projection={"_id": 0}, return_document=True)
     if not res:
         raise HTTPException(status_code=404, detail="Avis introuvable")
-    return res
+    return _norm_review(res)
 
 
 @api_router.delete("/admin/reviews/{review_id}")
@@ -427,6 +482,78 @@ async def admin_send_review_request(booking_id: str, admin: dict = Depends(requi
 @api_router.post("/admin/reviews/run")
 async def admin_run_review_requests(admin: dict = Depends(require_admin)):
     return await run_review_requests(db, Booking, _normalize)
+
+
+# ---------- Gift vouchers ----------
+
+VOUCHER_STATUSES = {"pending", "paid", "redeemed", "cancelled"}
+
+
+@api_router.post("/vouchers", response_model=Voucher)
+async def create_voucher(input: VoucherCreate):
+    if input.experience not in VOUCHER_EXPERIENCES:
+        input.experience = "discovery"
+    if input.lang not in ("fr", "en", "es"):
+        input.lang = "fr"
+    participants = 2 if input.experience == "duo" else input.participants
+    code = gen_code()
+    while await db.vouchers.find_one({"code": code}):
+        code = gen_code()
+    v = Voucher(**{**input.model_dump(), "participants": participants}, id=str(uuid.uuid4()), code=code,
+                value=voucher_value(input.experience, participants), created_at=datetime.now(timezone.utc).isoformat())
+    await db.vouchers.insert_one(v.model_dump())
+    await notify_owner_voucher(v.model_dump())
+    return v
+
+
+@api_router.get("/vouchers/check/{code}")
+async def check_voucher(code: str):
+    v = await find_voucher(db, code)
+    if not v:
+        return {"valid": False, "reason": "not_found"}
+    ok, reason = voucher_state(v)
+    return {"valid": ok, "reason": reason, "value": v["value"] if ok else None, "experience": v["experience"] if ok else None,
+            "participants": v["participants"] if ok else None, "recipient_name": v["recipient_name"] if ok else None}
+
+
+@api_router.get("/admin/vouchers", response_model=List[Voucher])
+async def admin_vouchers(admin: dict = Depends(require_admin)):
+    return await db.vouchers.find({}, {"_id": 0}).sort("created_at", -1).to_list(2000)
+
+
+@api_router.patch("/admin/vouchers/{voucher_id}", response_model=Voucher)
+async def admin_update_voucher(voucher_id: str, input: VoucherUpdate, admin: dict = Depends(require_admin)):
+    if input.status not in VOUCHER_STATUSES:
+        raise HTTPException(status_code=400, detail="Statut invalide")
+    v = await db.vouchers.find_one({"id": voucher_id}, {"_id": 0})
+    if not v:
+        raise HTTPException(status_code=404, detail="Bon cadeau introuvable")
+    update = {"status": input.status}
+    if input.status == "paid" and v["status"] != "paid":
+        update.update(mark_paid_fields() if not v.get("paid_at") else {})
+        if v["status"] == "redeemed":
+            update.update({"redeemed_at": None, "redeemed_booking_id": None})
+    await db.vouchers.update_one({"id": voucher_id}, {"$set": update})
+    v = await db.vouchers.find_one({"id": voucher_id}, {"_id": 0})
+    if input.status == "paid" and not v.get("email_sent"):
+        sent = await notify_voucher_buyer(v)
+        await db.vouchers.update_one({"id": voucher_id}, {"$set": {"email_sent": sent}})
+        v["email_sent"] = sent
+    return v
+
+
+@api_router.post("/admin/vouchers/{voucher_id}/resend", response_model=Voucher)
+async def admin_resend_voucher(voucher_id: str, admin: dict = Depends(require_admin)):
+    v = await db.vouchers.find_one({"id": voucher_id}, {"_id": 0})
+    if not v:
+        raise HTTPException(status_code=404, detail="Bon cadeau introuvable")
+    if v["status"] not in ("paid", "redeemed"):
+        raise HTTPException(status_code=400, detail="Activez d'abord le bon (paiement reçu)")
+    sent = await notify_voucher_buyer(v)
+    if not sent:
+        raise HTTPException(status_code=502, detail="Envoi impossible (email injoignable)")
+    await db.vouchers.update_one({"id": voucher_id}, {"$set": {"email_sent": True}})
+    return {**v, "email_sent": True}
 
 
 # ---------- Weekly report ----------
@@ -491,6 +618,7 @@ async def startup():
     await seed_admin(db)
     await db.reviews.create_index("booking_id", unique=True)
     await db.bookings.create_index("review_token")
+    await db.vouchers.create_index("code", unique=True)
 
     async def reviews_job():
         if datetime.now(CANARY_TZ).hour >= REVIEW_HOUR:

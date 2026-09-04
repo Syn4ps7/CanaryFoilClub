@@ -61,6 +61,12 @@ const Testimonials = () => {
                 <Quote size={28} className="absolute right-6 top-6 text-glow/20" />
                 <Stars value={r.rating} />
                 <p className="mt-5 font-cormorant text-xl leading-relaxed text-slate-100 italic">« {r.comment} »</p>
+                {r.reply && (
+                  <div className="mt-4 rounded-xl border-l-2 border-glow/60 bg-glow/5 px-4 py-3" data-testid={`review-reply-${r.id}`}>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-glow/80">{t.reviews.reply}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-300">{r.reply}</p>
+                  </div>
+                )}
                 <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                   <div>
                     <p className="font-syne text-sm font-bold">{r.name}</p>

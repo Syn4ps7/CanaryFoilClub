@@ -1,10 +1,52 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Eye, EyeOff, Star, Trash2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Star, Trash2, Sparkles, MessageCircleReply } from "lucide-react";
 import { adminApi, formatApiError } from "@/lib/adminApi";
 import { Stars } from "@/components/Testimonials";
 import { EXP_LABELS } from "@/components/admin/BookingsTable";
+
+const ReplyBox = ({ review, busy, onSave }) => {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(review.reply || "");
+  useEffect(() => setText(review.reply || ""), [review.reply]);
+  if (!open) {
+    return (
+      <div className="mt-3">
+        {review.reply ? (
+          <div className="rounded-xl border-l-2 border-glow/60 bg-glow/5 px-3 py-2" data-testid={`admin-review-reply-${review.id}`}>
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-glow/80">Votre réponse</p>
+            <p className="mt-0.5 text-sm text-slate-300">{review.reply}</p>
+            <button data-testid={`review-reply-edit-${review.id}`} onClick={() => setOpen(true)} className="mt-1 text-[11px] text-slate-500 hover:text-glow">Modifier</button>
+          </div>
+        ) : (
+          <button data-testid={`review-reply-open-${review.id}`} onClick={() => setOpen(true)} className="inline-flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-glow">
+            <MessageCircleReply size={13} /> Répondre publiquement
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 space-y-2" data-testid={`review-reply-form-${review.id}`}>
+      <textarea
+        data-testid={`review-reply-input-${review.id}`}
+        rows={3}
+        maxLength={600}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Merci pour votre confiance… (réponse visible sur le site)"
+        className="w-full rounded-xl border border-white/15 bg-deep px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none focus:border-glow/70 resize-none"
+      />
+      <div className="flex gap-2">
+        <button data-testid={`review-reply-save-${review.id}`} disabled={busy} onClick={async () => { await onSave(text.trim()); setOpen(false); }} className="rounded-full border border-glow/50 bg-glow/10 px-3 py-1.5 text-xs font-semibold text-glow hover:bg-glow/20 disabled:opacity-40">
+          Publier la réponse
+        </button>
+        <button data-testid={`review-reply-cancel-${review.id}`} onClick={() => { setOpen(false); setText(review.reply || ""); }} className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-slate-400 hover:text-white">Annuler</button>
+      </div>
+    </div>
+  );
+};
 
 const AdminReviews = ({ onLogout }) => {
   const [reviews, setReviews] = useState(null);
@@ -104,6 +146,7 @@ const AdminReviews = ({ onLogout }) => {
               </span>
             </div>
             <p className="mt-3 font-cormorant text-lg italic leading-relaxed text-slate-200">« {r.comment} »</p>
+            <ReplyBox review={r} busy={busy === r.id} onSave={(reply) => patch(r.id, { reply }, reply ? "Réponse publiée" : "Réponse supprimée")} />
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 data-testid={`review-toggle-approve-${r.id}`}

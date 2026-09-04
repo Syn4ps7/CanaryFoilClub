@@ -5,6 +5,7 @@ const OFFERS = [
   { key: "b2c", label: "B2C classique", sub: "Discovery · Duo VIP · Test Drive", color: "#00F0FF" },
   { key: "corporate", label: "Pack B2B Corporate Sunset", sub: "890 € — privatisation golden hour", color: "#D4AF37" },
   { key: "drone", label: "Options Drone 4K", sub: "+50 € / participant", color: "#00C2CB" },
+  { key: "gift", label: "Bons cadeaux", sub: "Encaissés à l'activation", color: "#F5D06F" },
 ];
 
 const RevenueSplit = ({ byOffer = {} }) => {

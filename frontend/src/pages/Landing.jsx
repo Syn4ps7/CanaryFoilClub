@@ -10,6 +10,8 @@ import Experiences from "@/components/Experiences";
 import Corporate from "@/components/Corporate";
 import Reseller from "@/components/Reseller";
 import Testimonials from "@/components/Testimonials";
+import GiftSection from "@/components/GiftSection";
+import GiftModal from "@/components/GiftModal";
 import BookingModal from "@/components/BookingModal";
 import Footer from "@/components/Footer";
 import ScrollTop from "@/components/ScrollTop";
@@ -42,6 +44,7 @@ const Intro = () => (
 export default function Landing() {
   const [intro, setIntro] = useState(true);
   const [booking, setBooking] = useState({ open: false, preset: null });
+  const [gift, setGift] = useState(false);
 
   useEffect(() => {
     const lenis = new Lenis({ duration: 1.25, smoothWheel: true });
@@ -78,9 +81,11 @@ export default function Landing() {
           <Experiences onBook={openBooking} />
           <Corporate onBook={openBooking} />
           <Testimonials />
+          <GiftSection onGift={() => setGift(true)} />
           <Reseller onBook={openBooking} />
         </main>
         <Footer />
+        <GiftModal open={gift} onClose={() => setGift(false)} />
         <ScrollTop />
         <BookingModal
           open={booking.open}

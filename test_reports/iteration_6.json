@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 6 tested end-to-end: gift vouchers + review replies + booking regressions. Backend: 23/23 pytest cases pass (POST /vouchers with discovery/duo/invalid-email/corporate fallback; GET /vouchers/check case-insensitive; PATCH /admin/vouchers activate/cancel/release + 401/404/400; POST /admin/vouchers/{id}/resend pending-400; POST /booking with paid/unknown/pending voucher + reuse-400 + release + no-voucher regression with created_at present; GET /admin/stats.by_offer.gift + stats.vouchers; CSV headers include bon_cadeau;remise_eur; PATCH /admin/reviews reply set/clear + public reveal; GET /admin/reviews serialises OK). Frontend: gift-section + gift-modal (buyer/recipient/duo forces 2p + 280€ + submit success), booking modal voucher unknown code shows red 'Code introuvable', admin nav-vouchers → admin-vouchers-page + vouchers-kpis; voucher-activate flips voucher-status to 'Actif' + voucher-cancel → 'Annulé' + voucher-reactivate → 'Actif'; release buttons present for redeemed vouchers; nav-reviews (direct URL) → review-reply-edit → save shows admin-review-reply and edit reappears; toast 'Réponse publiée'; landing #reviews shows review-reply block; dashboard revenue-offer-gift line 'Bons cadeaux' visible.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "AdminReviews via nav-reviews right after nav-vouchers", "issue": "Occasionally admin-reviews-page selector times out (~8s) after clicking nav-reviews from the vouchers tab; hard navigating to /admin/reviews works immediately (same transient race noted in iter 5).", "affected_selectors": ["admin-reviews-page"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iteration6.py", "/app/test_reports/pytest/iter6.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py: VoucherUpdate has an odd `created_at: datetime = Field(default_factory=...)` field that has no effect on PATCH input (extra=allow not set on this model) and is confusing dead code — remove it to avoid future confusion.",
+    "server.py create_voucher: `Voucher(**{**input.model_dump(), 'participants': participants}, id=..., code=..., value=..., created_at=...)` works, but relying on Pydantic field-order defaults for such a critical uniqueness-constrained field is fragile; also the code retry loop only regenerates on collision but never bounds attempts — with 32^8 alphabet this is fine, just note it.",
+    "vouchers.redeem_voucher raises HTTPException(400, detail=<dict>) for non-ok states. That serialises the dict as JSON — a client parsing `detail` as string will show '{...}' literally. Verified test spec strings ('utilisé', 'introuvable') match the dict values, so downstream tests pass. Prefer flat string detail for clarity, or a `code`+`message` object accepted by frontend consumers.",
+    "server.py admin_update_voucher: when `status==paid` on already-paid voucher, no fields are updated (correct), but `notify_voucher_buyer` is skipped only via `email_sent` guard — a manual PATCH to 'paid' on a paid voucher whose earlier email failed will NOT retry. Consider using POST /resend for retry (already available).",
+    "BookingModal.jsx voucher check fires on every keystroke without debounce; typing 12 chars triggers up to 12 requests. Add a 300ms debounce."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration6.py"],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "100% of tested flows"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "During tests a handful of TEST_ prefixed vouchers were created (buyer_name starts with 'TEST'); some activated (paid), one cancelled, some redeemed by TEST bookings. Review reply on Laura G. was rewritten to 'Merci pour votre confiance, à très vite sur l'eau !' (non-empty as instructed).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All iter6 endpoints in /app/backend/tests/test_iteration6.py — loads REACT_APP_BACKEND_URL from /app/frontend/.env. Numerous TEST_ vouchers now populate the vouchers collection; the admin-vouchers-page shows many cards. voucher-activate/cancel/reactivate flow verified against real DB. AdminReviews initial nav race persists from iter5 — use direct /admin/reviews URL for stable tests. delivered@resend.dev is only deliverable email.",
+  "rca of the issue": "N/A — no functional bug found."
+}

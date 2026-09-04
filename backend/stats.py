@@ -21,13 +21,17 @@ PRICES = {"discovery": 145, "duo": 280, "drone": 50, "corporate": 890, "testdriv
 CATEGORY = {"discovery": "b2c", "duo": "b2c", "testdrive": "b2c", "corporate": "corporate", "drone": "drone"}
 
 
-def price_of(b: dict) -> float:
+def base_price_of(b: dict) -> float:
     exp, n = b.get("experience", "discovery"), int(b.get("participants", 1) or 1)
     if exp == "discovery":
         return PRICES["discovery"] * n
     if exp == "drone":
         return PRICES["drone"] * n
     return float(PRICES.get(exp, 0))
+
+
+def price_of(b: dict) -> float:
+    return max(base_price_of(b) - float(b.get("discount") or 0), 0.0)
 
 
 def boards_of(b: dict, boards: int) -> int:
@@ -58,14 +62,25 @@ def session_date(b: dict):
         return None
 
 
-def compute_stats(bookings: list[dict], settings: dict) -> dict:
+def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | None = None) -> dict:
     boards, slots_per_day = settings["boards"], settings["slots_per_day"]
     capacity = boards * slots_per_day
     today = datetime.now(timezone.utc).date()
     month_days = monthrange(today.year, today.month)[1]
     revenue = {"today": 0.0, "month": 0.0, "total": 0.0}
-    by_offer = {"b2c": 0.0, "corporate": 0.0, "drone": 0.0}
+    by_offer = {"b2c": 0.0, "corporate": 0.0, "drone": 0.0, "gift": 0.0}
     commissions = 0.0
+    for v in vouchers or []:
+        if v.get("status") not in ("paid", "redeemed") or not v.get("paid_at"):
+            continue
+        pd = date.fromisoformat(v["paid_at"][:10])
+        amount = float(v.get("value") or 0)
+        revenue["total"] += amount
+        by_offer["gift"] += amount
+        if pd == today:
+            revenue["today"] += amount
+        if pd.year == today.year and pd.month == today.month:
+            revenue["month"] += amount
     sessions = {"total": 0, "today": 0, "month": 0}
     used = {"today": 0, "month": 0}
     status_counts = {}
