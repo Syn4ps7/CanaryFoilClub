@@ -101,6 +101,11 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - À venir (Stripe) : paiement réussi → statut `confirmed` automatique (webhook), bon cadeau → `paid` automatique
 - Testé : testing_agent iteration_11 (backend 13/13, frontend 100 %)
 
+## Bug fix (2026-06) — CA du jour/mois ne bougeait pas à la confirmation
+- Cause : CA jour/mois calculé à la date de session ; confirmer une réservation d'un autre jour/mois ne changeait rien
+- Fix : `confirmed_at` posé au premier passage confirmed/completed ; revenue.today/month calculés à la date d'encaissement (`cash_date` = confirmed_at, fallback created_at) ; sessions/occupation restent à la date de session ; KPIs renommés « CA encaissé aujourd'hui / ce mois » + `confirmations {today, month}`
+- Testé : testing_agent iteration_12 (100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

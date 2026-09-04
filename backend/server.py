@@ -73,6 +73,7 @@ class Booking(BookingCreate):
     review_request_sent: Optional[bool] = None
     review_request_sent_at: Optional[str] = None
     review_id: Optional[str] = None
+    confirmed_at: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -731,6 +732,8 @@ async def update_booking(booking_id: str, input: BookingUpdate, admin: dict = De
     if not before:
         raise HTTPException(status_code=404, detail="Réservation introuvable")
     update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if update.get("status") in ("confirmed", "completed") and before.get("status") not in ("confirmed", "completed"):
+        update["confirmed_at"] = datetime.now(timezone.utc).isoformat()
     res = await db.bookings.find_one_and_update({"id": booking_id}, {"$set": update}, projection={"_id": 0}, return_document=True)
     booking = Booking(**_normalize(res))
     if update.get("status") == "confirmed" and before.get("status") != "confirmed":

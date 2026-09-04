@@ -22,7 +22,7 @@ const StatusBreakdown = ({ stats }) => {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">Réservations → chiffre d'affaires</p>
-        <p className="text-[11px] text-slate-500">CA = réservations confirmées + réalisées (à la date de session) + bons cadeaux activés</p>
+        <p className="text-[11px] text-slate-500">CA = réservations confirmées + réalisées (comptées le jour de la confirmation) + bons cadeaux activés</p>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {ROWS.map((r) => (

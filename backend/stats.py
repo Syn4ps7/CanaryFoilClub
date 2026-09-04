@@ -62,6 +62,14 @@ def session_date(b: dict):
         return None
 
 
+def cash_date(b: dict):
+    raw = b.get("confirmed_at") or b.get("created_at")
+    try:
+        return date.fromisoformat(str(raw)[:10])
+    except (ValueError, TypeError):
+        return None
+
+
 def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | None = None) -> dict:
     boards, slots_per_day = settings["boards"], settings["slots_per_day"]
     capacity = boards * slots_per_day
@@ -82,6 +90,7 @@ def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | N
         if pd.year == today.year and pd.month == today.month:
             revenue["month"] += amount
     sessions = {"total": 0, "today": 0, "month": 0}
+    confirmations = {"today": 0, "month": 0}
     used = {"today": 0, "month": 0}
     status_counts = {}
     revenue_by_status = {"confirmed": 0.0, "completed": 0.0}
@@ -94,6 +103,7 @@ def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | N
             continue
         amount = price_of(b)
         d = session_date(b)
+        cd = cash_date(b)
         is_today = d == today
         is_month = d is not None and d.year == today.year and d.month == today.month
 
@@ -104,18 +114,23 @@ def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | N
         by_offer[CATEGORY.get(b.get("experience"), "b2c")] += amount
         if b.get("partner"):
             commissions += amount * COMMISSION_RATE
-        if is_today:
+        if cd == today:
             revenue["today"] += amount
+            confirmations["today"] += 1
+        if cd is not None and cd.year == today.year and cd.month == today.month:
+            revenue["month"] += amount
+            confirmations["month"] += 1
+        if is_today:
             sessions["today"] += 1
             used["today"] += board_slots_of(b, boards)
         if is_month:
-            revenue["month"] += amount
             sessions["month"] += 1
             used["month"] += board_slots_of(b, boards)
 
     return {
         "revenue": revenue,
         "sessions": sessions,
+        "confirmations": confirmations,
         "occupancy": {
             "today": round(min(used["today"] / capacity, 1) * 100, 1),
             "month": round(min(used["month"] / (capacity * month_days), 1) * 100, 1),

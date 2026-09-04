@@ -1,0 +1,20 @@
+{
+  "summary": "Verified the bug fix: revenue.today/month now use booking.confirmed_at (cash_date) instead of session date. Booking cffc7ed6 (2026-06-15, 290 €) confirmed today correctly adds 290 € to today/month/total, sets confirmed_at to today; PATCH completed keeps confirmed_at and revenue unchanged; cancelled reverts to baseline; pending restores. Consistency invariants hold. Frontend KPI labels renamed (CA encaissé aujourd'hui / CA encaissé ce mois) and sub-text (N réservation(s) confirmée(s) aujourd'hui · M session(s) au planning) confirmed. Status-check balance line still balances (14 sessions · 5030 € = CA total 5030 € on confirm; restored to 13 · 4740 €).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_revenue_by_confirmed_at.py", "/app/test_reports/pytest/iteration12.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "stats.py cash_date: falls back to created_at when confirmed_at is missing (e.g., legacy confirmed bookings without confirmed_at). This can shift historical revenue.today/month based on creation date rather than the actual confirmation moment. Acceptable as fallback, but a one-off backfill script that stamps confirmed_at = updated_at (or created_at) for existing confirmed/completed bookings would remove ambiguity.",
+    "server.py update_booking sets confirmed_at only on first transition to confirmed/completed. Good. Consider clearing confirmed_at when a confirmed booking is later moved back to pending — currently the ISO timestamp stays and would re-attach if the booking is confirmed again in the future (though cash date is only read for revenue_statuses, so effect is null unless status re-becomes confirmed on a different day than the intended confirmation moment).",
+    "BookingsTable native <select> emits hydration warning ('In HTML, <span> cannot be a child of <option>') due to injected instrumentation spans. Not blocking, but pollutes the console."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "None. Used existing booking cffc7ed6-90ad-4c33-be84-d8ced5382812 and restored to pending after tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Target booking cffc7ed6-90ad-4c33-be84-d8ced5382812 (Test User, 290 €, 2026-06-15) is left in 'pending' state. Backend regression at /app/backend/tests/test_revenue_by_confirmed_at.py exercises full lifecycle (pending→confirmed→completed→cancelled→pending) and validates cash_date logic. Frontend uses native <select data-testid=\"booking-status-select-{id}\">, so use page.locator(...).select_option('confirmed'/'pending') rather than role=option clicks (multiple duplicate <option> elements exist).",
+  "rca of the issue": "Original bug: revenue.today/month were computed by session_date(b), so confirming a booking whose session is in the future never added revenue to today/month, only to total. Fix: introduce cash_date(b) = confirmed_at ?? created_at, and use it for revenue.today/month/confirmations. Session-based aggregations (sessions.today/month, occupancy, planning) intentionally still use session_date. Verified end-to-end."
+}

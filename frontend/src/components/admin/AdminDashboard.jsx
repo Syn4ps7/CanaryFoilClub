@@ -107,8 +107,8 @@ const AdminDashboard = ({ onLogout }) => {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard testId="kpi-revenue-today" label="CA du jour" value={eur(s.revenue.today)} sub={`${plural(s.sessions.today, "session")} aujourd'hui`} icon={Euro} delay={0} />
-            <KpiCard testId="kpi-revenue-month" label="CA du mois" value={eur(s.revenue.month)} sub={`${plural(s.sessions.month, "session")} ce mois`} icon={CalendarDays} delay={0.06} />
+            <KpiCard testId="kpi-revenue-today" label="CA encaissé aujourd'hui" value={eur(s.revenue.today)} sub={`${plural(s.confirmations.today, "réservation")} confirmée${s.confirmations.today > 1 ? "s" : ""} aujourd'hui · ${plural(s.sessions.today, "session")} au planning`} icon={Euro} delay={0} />
+            <KpiCard testId="kpi-revenue-month" label="CA encaissé ce mois" value={eur(s.revenue.month)} sub={`${plural(s.confirmations.month, "réservation")} confirmée${s.confirmations.month > 1 ? "s" : ""} ce mois · ${plural(s.sessions.month, "session")} au planning`} icon={CalendarDays} delay={0.06} />
             <KpiCard testId="kpi-revenue-total" label="CA total" value={eur(s.revenue.total)} sub={`${plural(s.sessions.total, "session")} confirmées ou réalisées · ${s.total_bookings} demandes`} icon={Euro} delay={0.12} />
             <KpiCard testId="kpi-commissions" label="Commissions partenaires" value={eur(s.commissions)} sub={`${Math.round(s.commission_rate * 100)} % sur les réservations apportées`} icon={Handshake} accent="gold" delay={0.18} />
           </div>
