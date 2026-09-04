@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 16 (Stripe payments, Flow A sandbox) — full backend + frontend end-to-end verified. Backend: 10/10 pytest cases pass. POST /api/payments/checkout returns 200 with checkout_url starting https://checkout.stripe.com and session_id starting cs_test_; payment_transactions row created (status=initiated, payment_status=pending, amount=145.0, currency=eur). GET /api/payments/status/{sid} returns session_id/status/payment_status/kind/amount. Unknown session → 404. kind='booking' on already-confirmed booking → 400. Invalid kind → 400. Booking with amount=0 (voucher-paid) → 400 'Aucun paiement requis'. Voucher checkout happy path → 200 with kind=voucher, pending; already-paid voucher → 400. Webhook POST /api/stripe/webhook without valid signature → 400. Frontend: /paiement?cancelled=1 → data-state='cancelled' with amber XCircle + payment-back link. /paiement?session_id=cs_test_unknown → data-state 'checking' then 'failed' after 3 polls (~6s). Full E2E: opened booking modal from landing, filled valid data (delivered@resend.dev, discovery, 2026-10-12, terms), submit → toast 'Redirection vers le paiement sécurisé…' → navigation to https://checkout.stripe.com/…, selected Card, filled 4242 4242 4242 4242 / 12/34 / 123, name 'Test User', country Spain, address Calle Test 1, city Madrid, postal 28001, province VI, clicked Pay → redirected to {origin}/paiement?session_id=cs_test_a1Git…, PaymentPage transitioned to data-state='success' with 'Paiement reçu — votre vol est confirmé !' immediately after 1st poll. Verified via admin API: booking status=confirmed, paid_at + confirmed_at set (2026-09-04T17:20:57), confirmation_email_sent=true; backend log confirms 'Client confirmed-email sent (id=…) to delivered@resend.dev'. Payment fulfilment path is the polling endpoint fallback (as documented — Stripe webhook does not reach preview). All 7 test bookings + 2 test vouchers cancelled at end (no CA pollution).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/admin/bookings", "issue": "payment_session_id is not exposed in the Booking model response (comes back as null even when set in DB). Does not affect the 'Payé en ligne' badge (uses paid_at). Consider adding payment_session_id: Optional[str] to Booking pydantic model if needed for admin diagnostics."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration16_stripe.py",
+    "/app/test_reports/pytest/iteration16.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "payments.py L66-68: automatic_tax fallback via except stripe.error.StripeError is correct; verified in preview (session created with automatic_tax enabled for CH-based sandbox — Spain billing works).",
+    "payments.py L21-30: _mark_paid uses find_one_and_update with payment_status $ne 'paid' — idempotent, safe against webhook + polling race.",
+    "server.py L769-772: fulfill_payment writes payment_session_id on the booking doc but Booking model does not declare that field, so it is silently stripped from GET responses (minor).",
+    "GiftModal.jsx L37-40: `return; onClose(); setForm(EMPTY);` — unreachable cleanup code after the return statement. Harmless because window.location.href navigates away, but should be cleaned up.",
+    "PaymentPage.jsx polling: attempts >=3 on network error → failed; attempts >=10 → pending (~20s). Correct per spec.",
+    "BookingsTable.jsx L68-69: 'Payé en ligne' emerald pill uses data-testid=`booking-paid-${b.id}` and gates on b.paid_at — good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration16_stripe.py"
+  ],
+  "success_rate": {"backend": "100% (10/10 pytest)", "frontend": "100% (cancelled state, unknown-session polling failure, booking→Stripe→success E2E with real 4242 card + Spain address, admin fulfilment verified via API)"},
+  "test_credentials": "admin / admin ; Stripe test card 4242 4242 4242 4242 exp 12/34 CVC 123 country ES postal 28001 province VI",
+  "seed_data_creation": "7 bookings + 2 vouchers created against delivered@resend.dev during testing (TEST Iter16 Stripe, TEST Iter16 VoucherPaid, TEST Iter16 UI, TEST Iter16 UI Pay, TEST Iter16 Pay2, TEST Iter16 PayFinal, TEST Iter16 Complete). All cancelled at end. One booking (TEST Iter16 Complete) actually charged 145€ on Stripe test sandbox (real cs_test_ session paid). Test vouchers cancelled.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Stripe Checkout UI on preview requires: (1) click 'Card' text to expand accordion, (2) fill #cardNumber #cardExpiry #cardCvc #billingName, (3) select #billingCountry to 'ES', (4) click 'Enter address manually' link, (5) fill #billingAddressLine1 #billingLocality #billingPostalCode, (6) select first option in #billingAdministrativeArea (province is required for Spain), (7) click button[data-testid='hosted-payment-submit-button']. Set viewport height >=1400 so the Pay button is reachable. Full flow: 30-90s. Webhook signature secret differs between Stripe dashboard and .env — webhook events do NOT reach the preview backend; fulfilment happens via GET /api/payments/status/{sid} polling which retrieves the session and calls _mark_paid on payment_status='paid'. That is the intended verification path.",
+  "rca of the issue": "N/A — Stripe integration works end-to-end; only cosmetic finding is that payment_session_id is stripped by the Booking Pydantic model (not declared as a field). Suggest declaring `payment_session_id: Optional[str] = None` on Booking if the admin needs to display the Stripe session reference. Not blocking."
+}

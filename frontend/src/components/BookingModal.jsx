@@ -62,7 +62,13 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
     }
     setSending(true);
     try {
-      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), voucher_code: form.voucher_code.trim() || undefined, minor_consent: form.minor ? form.minor_consent : false, lang });
+      const { data: created } = await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), voucher_code: form.voucher_code.trim() || undefined, minor_consent: form.minor ? form.minor_consent : false, lang });
+      if (created.amount > 0) {
+        toast.success(t.payment.redirect);
+        const { data: pay } = await axios.post(`${API}/payments/checkout`, { kind: "booking", ref_id: created.id, origin_url: window.location.origin });
+        window.location.href = pay.checkout_url;
+        return;
+      }
       toast.success(t.toast.success);
       onClose();
       setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "", voucher_code: "", minor: false, minor_consent: false });

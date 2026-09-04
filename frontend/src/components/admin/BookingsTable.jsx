@@ -65,6 +65,9 @@ const BookingsTable = ({ bookings = [], onUpdate, onReminder = () => {}, onRevie
               <td className="px-5 sm:px-6 py-3.5">
                 <p className="font-medium text-white">{b.name}</p>
                 <p className="text-[11px] text-slate-500">{b.email}{b.hotel ? ` · ${b.hotel}` : ""}</p>
+                {b.paid_at && (
+                  <span data-testid={`booking-paid-${b.id}`} className="mt-1 mr-1 inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-300">Payé en ligne</span>
+                )}
                 {b.minor && (
                   <button
                     data-testid={`booking-minor-toggle-${b.id}`}

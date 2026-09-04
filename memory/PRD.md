@@ -122,6 +122,14 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Admin : badge « Mineur · autorisation à recevoir / reçue » cliquable dans les tables (PATCH `parental_auth_received`)
 - Testé : testing_agent iteration_15 (backend 7/7, frontend 8/8)
 
+## Implemented (2026-06) — Paiement Stripe (Flow A, sandbox réclamable)
+- Sandbox Stripe provisionnée via le proxy (compte acct_1UAEZIRiB8kkJtbh, pays CH) ; clés dans backend/.env (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_ACCOUNT_ID, STRIPE_WEBHOOK_SECRET, STRIPE_MODE) ; onboarding_url dans /app/memory/stripe_onboarding.txt
+- `payments.py` : POST /api/payments/checkout {kind booking|voucher, ref_id, origin_url} → Stripe Checkout (montant serveur, EUR, automatic_tax avec fallback), `payment_transactions` ; GET /api/payments/status/{session_id} (fallback de fulfilment idempotent) ; POST /api/stripe/webhook (signature)
+- `fulfill_payment` : booking → confirmed + confirmed_at + paid_at + email confirmation ; voucher → paid + expires_at + email PDF
+- Frontend : redirection après création réservation (montant > 0) / bon cadeau ; page /paiement (polling, états checking/pending/success/failed/cancelled, FR/EN/ES) ; badge « Payé en ligne » admin
+- Mode taxe choisi : Stripe calcule la taxe (calc_only) ; alternatives : gestion complète / DIY
+- Testé : testing_agent iteration_16 (backend 10/10, E2E carte 4242 → réservation confirmée)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

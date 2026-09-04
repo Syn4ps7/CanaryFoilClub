@@ -28,6 +28,7 @@ from vouchers import gen_code, voucher_value, voucher_state, find_voucher, redee
 from emailer import notify_voucher_buyer, notify_owner_voucher
 from voucher_pdf import build_voucher_pdf
 from storage import init_storage, put_object, get_object, APP_NAME
+from payments import build_router as build_payments_router, make_webhook
 import secrets
 from fastapi.responses import Response
 
@@ -77,6 +78,8 @@ class Booking(BookingCreate):
     review_id: Optional[str] = None
     parental_auth_received: Optional[bool] = None
     confirmed_at: Optional[str] = None
+    paid_at: Optional[str] = None
+    payment_session_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -758,6 +761,29 @@ async def update_booking(booking_id: str, input: BookingUpdate, admin: dict = De
     return booking
 
 
+async def fulfill_payment(kind: str, ref_id: str, session_id: str):
+    now = datetime.now(timezone.utc).isoformat()
+    if kind == "booking":
+        before = await db.bookings.find_one({"id": ref_id}, {"_id": 0})
+        if not before or before.get("status") in ("confirmed", "completed"):
+            return
+        await db.bookings.update_one({"id": ref_id}, {"$set": {"status": "confirmed", "confirmed_at": now, "paid_at": now, "payment_session_id": session_id, "updated_at": now}})
+        booking = Booking(**_normalize(await db.bookings.find_one({"id": ref_id}, {"_id": 0})))
+        sent = await notify_confirmed(booking, slot_label(await get_settings(), booking.slot))
+        await db.bookings.update_one({"id": ref_id}, {"$set": {"confirmation_email_sent": sent}})
+    elif kind == "voucher":
+        v = await db.vouchers.find_one({"id": ref_id}, {"_id": 0})
+        if not v or v.get("status") != "pending":
+            return
+        await db.vouchers.update_one({"id": ref_id}, {"$set": {**mark_paid_fields(), "payment_session_id": session_id}})
+        v = await db.vouchers.find_one({"id": ref_id}, {"_id": 0})
+        sent = await notify_voucher_buyer(v, _voucher_pdf_url(v))
+        await db.vouchers.update_one({"id": ref_id}, {"$set": {"email_sent": sent}})
+
+
+payments_router, _mark_paid = build_payments_router(db, fulfill_payment)
+app.include_router(payments_router)
+app.add_api_route("/api/stripe/webhook", make_webhook(db, _mark_paid), methods=["POST"])
 app.include_router(api_router)
 
 app.add_middleware(

@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import Landing from "@/pages/Landing";
 import Admin from "@/pages/Admin";
 import ReviewPage from "@/pages/ReviewPage";
+import PaymentPage from "@/pages/PaymentPage";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/avis/:token" element={<ReviewPage />} />
+        <Route path="/paiement" element={<PaymentPage />} />
         <Route path="/admin/*" element={<Admin />} />
       </Routes>
       <Toaster

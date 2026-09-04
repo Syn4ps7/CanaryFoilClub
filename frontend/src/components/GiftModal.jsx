@@ -30,8 +30,11 @@ const GiftModal = ({ open, onClose }) => {
     }
     setSending(true);
     try {
-      await axios.post(`${API}/vouchers`, { ...form, participants: Number(form.participants), lang });
-      toast.success(t.gift.success);
+      const { data: created } = await axios.post(`${API}/vouchers`, { ...form, participants: Number(form.participants), lang });
+      toast.success(t.payment.redirect);
+      const { data: pay } = await axios.post(`${API}/payments/checkout`, { kind: "voucher", ref_id: created.id, origin_url: window.location.origin });
+      window.location.href = pay.checkout_url;
+      return;
       onClose();
       setForm(EMPTY);
       setTerms(false);
