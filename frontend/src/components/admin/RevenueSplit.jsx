@@ -30,7 +30,7 @@ const RevenueSplit = ({ byOffer = {} }) => {
                   <p className="text-[11px] text-slate-500">{o.sub}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-syne text-lg font-bold" style={{ color: o.color }}>{eur(val)}</p>
+                  <p className="font-outfit text-lg font-semibold tabular-nums" style={{ color: o.color }}>{eur(val)}</p>
                   <p className="font-mono text-[10px] text-slate-500">{pct}%</p>
                 </div>
               </div>

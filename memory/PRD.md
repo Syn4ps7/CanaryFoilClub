@@ -50,6 +50,14 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Layout admin avec navigation (Vue d'ensemble / Réservations / Planning), react-router `/admin/*`
 - Testé : testing_agent iteration_2 (backend 25/25, frontend 100 %)
 
+## Implemented (2026-06) — Admin v3
+- Flèche « remonter en haut » sur la landing (`ScrollTop.jsx`, apparaît après 80 % de viewport, scroll Lenis)
+- Changement de mot de passe depuis le dashboard (icône clé → modal, POST /api/auth/change-password, min 8 caractères) ; `seed_admin` ne réécrit plus le hash au démarrage (le .env sert uniquement à la création initiale)
+- Météo du spot (Open-Meteo, sans clé, cache 30 min) sur la vue jour du planning : vent moyen/rafales/direction, houle/période/direction, température, barres horaires 8h-20h, recommandation de crique (Playa del Duque-Fañabé / La Caleta-Playa Paraíso / El Puertito / Puerto Colón) avec niveau idéal-bon-limite-déconseillé ; fenêtre -60 j / +15 j
+- Vue semaine du planning (GET /api/admin/planning/week) : 7 cartes lundi→dimanche, occupation, sessions, CA, en attente, « jour creux », clic → vue jour
+- Typo des chiffres : Outfit (tabular-nums) sur tous les KPIs/montants admin
+- Testé : testing_agent iteration_3 (backend 37/37, frontend 100 %) ; fix erreur météo hors horizon (message court)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

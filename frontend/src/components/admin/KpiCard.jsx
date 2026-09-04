@@ -20,7 +20,7 @@ const KpiCard = ({ label, value, sub, icon: Icon, accent = "glow", delay = 0, te
         </span>
       )}
     </div>
-    <p className={`relative mt-4 font-syne text-3xl sm:text-4xl font-extrabold tracking-tight ${accent === "gold" ? "text-gold" : "text-white"}`}>
+    <p className={`relative mt-4 font-outfit text-3xl sm:text-4xl font-semibold tracking-tight tabular-nums ${accent === "gold" ? "text-gold" : "text-white"}`}>
       {value}
     </p>
     {sub && <p className="relative mt-2 text-xs text-slate-400">{sub}</p>}

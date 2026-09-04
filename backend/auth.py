@@ -40,8 +40,20 @@ async def seed_admin(db):
             "role": "admin",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-    elif not verify_password(password, existing["password_hash"]):
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password)}})
+
+
+async def change_password(db, email: str, current: str, new: str):
+    user = await db.users.find_one({"email": email})
+    if not user or not verify_password(current, user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+    if len(new) < 8:
+        raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit contenir au moins 8 caractères")
+    if new == current:
+        raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit être différent de l'actuel")
+    await db.users.update_one(
+        {"email": email},
+        {"$set": {"password_hash": hash_password(new), "password_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
 
 
 async def check_lockout(db, identifier: str):

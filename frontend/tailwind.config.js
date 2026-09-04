@@ -9,6 +9,7 @@ module.exports = {
     extend: {
       fontFamily: {
         syne: ['Syne', 'sans-serif'],
+        outfit: ['Outfit', 'sans-serif'],
         cormorant: ['"Cormorant Garamond"', 'serif'],
         jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],

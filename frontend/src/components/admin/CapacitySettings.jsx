@@ -11,7 +11,7 @@ const Stepper = ({ label, value, onChange, testId }) => (
     <span className="text-xs text-slate-300">{label}</span>
     <div className="inline-flex items-center rounded-full border border-white/15 bg-deep">
       <button type="button" data-testid={`${testId}-minus`} onClick={() => onChange(Math.max(1, value - 1))} className="h-8 w-8 text-slate-300 transition-colors hover:text-glow">−</button>
-      <span data-testid={`${testId}-value`} className="w-8 text-center font-syne text-sm font-bold text-white">{value}</span>
+      <span data-testid={`${testId}-value`} className="w-8 text-center font-outfit text-sm font-semibold tabular-nums text-white">{value}</span>
       <button type="button" data-testid={`${testId}-plus`} onClick={() => onChange(Math.min(MAX, value + 1))} className="h-8 w-8 text-slate-300 transition-colors hover:text-glow">+</button>
     </div>
   </div>

@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { adminApi, formatApiError } from "@/lib/adminApi";
 import { EXP_LABELS } from "@/components/admin/BookingsTable";
+import WeatherCard from "@/components/admin/WeatherCard";
+import WeekView from "@/components/admin/WeekView";
 
 const iso = (d) => d.toISOString().slice(0, 10);
 const shift = (s, n) => {
@@ -30,10 +32,12 @@ const cellsForSlot = (slot, boards) => {
 
 const AdminPlanning = ({ onLogout }) => {
   const [day, setDay] = useState(iso(new Date()));
+  const [view, setView] = useState("day");
   const [plan, setPlan] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   const load = useCallback(async () => {
+    if (view !== "day") return;
     try {
       const { data } = await adminApi.get("/admin/planning", { params: { day } });
       setPlan(data);
@@ -41,7 +45,7 @@ const AdminPlanning = ({ onLogout }) => {
       if (err?.response?.status === 401) onLogout();
       else toast.error(formatApiError(err));
     }
-  }, [day, onLogout]);
+  }, [day, view, onLogout]);
 
   useEffect(() => {
     load();
@@ -62,15 +66,33 @@ const AdminPlanning = ({ onLogout }) => {
 
   const label = new Date(`${day}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const pct = plan ? Math.round((plan.used / plan.capacity) * 100) : 0;
+  const pickDay = (d) => {
+    setDay(d);
+    setView("day");
+  };
 
   return (
     <div className="space-y-6" data-testid="admin-planning-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500">Planning</p>
-          <h2 className="mt-1 font-syne text-2xl sm:text-3xl font-bold tracking-tight capitalize">{label}</h2>
+          <h2 className="mt-1 font-syne text-2xl sm:text-3xl font-bold tracking-tight capitalize">{view === "day" ? label : "Vue semaine"}</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-full border border-white/15 bg-deep p-1" data-testid="planning-view-toggle">
+            {[["day", "Jour"], ["week", "Semaine"]].map(([v, l]) => (
+              <button
+                key={v}
+                data-testid={`planning-view-${v}`}
+                onClick={() => setView(v)}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${view === v ? "bg-glow text-abyss" : "text-slate-300 hover:text-white"}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          {view === "day" && (
+            <>
           <button data-testid="planning-prev-day" onClick={() => setDay((d) => shift(d, -1))} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-slate-300 transition-colors hover:border-glow/60 hover:text-glow"><ChevronLeft size={16} /></button>
           <div className="relative">
             <CalendarDays size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -78,13 +100,19 @@ const AdminPlanning = ({ onLogout }) => {
           </div>
           <button data-testid="planning-next-day" onClick={() => setDay((d) => shift(d, 1))} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-slate-300 transition-colors hover:border-glow/60 hover:text-glow"><ChevronRight size={16} /></button>
           <button data-testid="planning-today" onClick={() => setDay(iso(new Date()))} className="rounded-full border border-white/15 px-4 py-2 text-xs text-slate-300 transition-colors hover:border-glow/60 hover:text-glow">Aujourd'hui</button>
+            </>
+          )}
         </div>
       </div>
 
-      {plan && (
+      {view === "week" && <WeekView anchor={day} today={iso(new Date())} onPickDay={pickDay} onLogout={onLogout} />}
+
+      {view === "day" && <WeatherCard day={day} />}
+
+      {view === "day" && plan && (
         <>
           <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 bg-panel/70 px-5 py-4 backdrop-blur-xl" data-testid="planning-summary">
-            <p className="font-syne text-2xl font-extrabold">{pct} %</p>
+            <p className="font-outfit text-2xl font-semibold tabular-nums">{pct} %</p>
             <div className="flex-1 min-w-[160px]">
               <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} className="h-full rounded-full bg-glow" style={{ boxShadow: "0 0 12px rgba(0,240,255,0.5)" }} />

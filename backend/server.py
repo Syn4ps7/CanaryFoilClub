@@ -15,10 +15,11 @@ import logging
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 import uuid
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from emailer import notify_owner, notify_client, notify_confirmed
-from auth import login as auth_login, seed_admin, get_current_admin_factory
-from stats import compute_stats, compute_planning, price_of, DEFAULT_SETTINGS, MAX_BOARDS, MAX_SLOTS
+from auth import login as auth_login, seed_admin, get_current_admin_factory, change_password
+from stats import compute_stats, compute_planning, compute_week, price_of, DEFAULT_SETTINGS, MAX_BOARDS, MAX_SLOTS
+from weather import get_weather
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -72,6 +73,18 @@ class BookingUpdate(BaseModel):
 class SettingsInput(BaseModel):
     boards: int = Field(ge=1, le=MAX_BOARDS)
     slots_per_day: int = Field(ge=1, le=MAX_SLOTS)
+
+
+class PasswordInput(BaseModel):
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=8, max_length=200)
+
+
+def _parse_day(day: Optional[str]) -> date:
+    try:
+        return date.fromisoformat(day) if day else datetime.now(timezone.utc).date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date invalide (YYYY-MM-DD)")
 
 
 def _normalize(b: dict) -> dict:
@@ -133,6 +146,12 @@ async def login(input: LoginInput, request: Request):
 @api_router.get("/auth/me")
 async def me(admin: dict = Depends(require_admin)):
     return admin
+
+
+@api_router.post("/auth/change-password")
+async def auth_change_password(input: PasswordInput, admin: dict = Depends(require_admin)):
+    await change_password(db, admin["email"], input.current_password, input.new_password)
+    return {"ok": True}
 
 
 @api_router.get("/bookings", response_model=List[Booking])
@@ -209,12 +228,23 @@ async def admin_bookings_csv(
 
 @api_router.get("/admin/planning")
 async def admin_planning(day: Optional[str] = None, admin: dict = Depends(require_admin)):
-    try:
-        d = date.fromisoformat(day) if day else datetime.now(timezone.utc).date()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Date invalide (YYYY-MM-DD)")
+    d = _parse_day(day)
     bookings = await db.bookings.find({"date": {"$regex": f"^{d.isoformat()}"}}, {"_id": 0}).to_list(500)
     return compute_planning([_normalize(b) for b in bookings], d, await get_settings())
+
+
+@api_router.get("/admin/planning/week")
+async def admin_planning_week(start: Optional[str] = None, admin: dict = Depends(require_admin)):
+    s = _parse_day(start)
+    s = s - timedelta(days=s.weekday())
+    end = s + timedelta(days=6)
+    bookings = await db.bookings.find({"date": {"$gte": s.isoformat(), "$lte": end.isoformat() + "~"}}, {"_id": 0}).to_list(2000)
+    return {"start": s.isoformat(), "end": end.isoformat(), "days": compute_week([_normalize(b) for b in bookings], s, await get_settings())}
+
+
+@api_router.get("/admin/weather")
+async def admin_weather(day: Optional[str] = None, admin: dict = Depends(require_admin)):
+    return await get_weather(_parse_day(day).isoformat())
 
 
 @api_router.patch("/admin/bookings/{booking_id}", response_model=Booking)

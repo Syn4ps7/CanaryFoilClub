@@ -84,7 +84,7 @@ const BookingsTable = ({ bookings = [], onUpdate, busyId, title = "Réservations
                 )}
               </td>
               <td className="px-3 py-3.5 text-center text-slate-300">{b.participants}</td>
-              <td className="px-3 py-3.5 text-right font-syne font-bold text-white">{eur(b.amount)}</td>
+              <td className="px-3 py-3.5 text-right font-outfit font-semibold tabular-nums text-white">{eur(b.amount)}</td>
               <td className="px-3 py-3.5 text-center">
                 <button
                   data-testid={`booking-partner-toggle-${b.id}`}

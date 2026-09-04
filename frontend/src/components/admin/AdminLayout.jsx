@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, CalendarRange, LogOut } from "lucide-react";
+import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound } from "lucide-react";
+import ChangePassword from "@/components/admin/ChangePassword";
 
 const NAV = [
   { to: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard, end: true, id: "nav-dashboard" },
@@ -7,7 +9,9 @@ const NAV = [
   { to: "/admin/planning", label: "Planning", icon: CalendarRange, id: "nav-planning" },
 ];
 
-const AdminLayout = ({ admin, onLogout, children }) => (
+const AdminLayout = ({ admin, onLogout, children }) => {
+  const [pwOpen, setPwOpen] = useState(false);
+  return (
   <div className="min-h-screen bg-abyss noise-overlay text-white" data-testid="admin-shell">
     <header className="sticky top-0 z-20 border-b border-white/10 bg-abyss/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 py-3.5">
@@ -39,6 +43,14 @@ const AdminLayout = ({ admin, onLogout, children }) => (
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline text-xs text-slate-400" data-testid="admin-email">{admin.email}</span>
           <button
+            data-testid="admin-change-password"
+            onClick={() => setPwOpen(true)}
+            title="Changer le mot de passe"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-slate-300 transition-colors hover:border-glow/60 hover:text-glow"
+          >
+            <KeyRound size={14} />
+          </button>
+          <button
             data-testid="admin-logout"
             onClick={onLogout}
             className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-xs text-slate-300 transition-colors hover:border-red-400/60 hover:text-red-300"
@@ -64,7 +76,9 @@ const AdminLayout = ({ admin, onLogout, children }) => (
       </nav>
     </header>
     <main className="mx-auto max-w-7xl px-5 sm:px-8 py-8 sm:py-10 space-y-8">{children}</main>
+    <ChangePassword open={pwOpen} onClose={() => setPwOpen(false)} />
   </div>
-);
+  );
+};
 
 export default AdminLayout;

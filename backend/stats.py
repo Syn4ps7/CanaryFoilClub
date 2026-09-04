@@ -104,6 +104,30 @@ def compute_stats(bookings: list[dict], settings: dict) -> dict:
     }
 
 
+def compute_week(bookings: list[dict], start: date, settings: dict) -> list[dict]:
+    from datetime import timedelta
+    boards, slots_per_day = settings["boards"], settings["slots_per_day"]
+    capacity = boards * slots_per_day
+    days = []
+    for i in range(7):
+        d = start + timedelta(days=i)
+        day_b = [b for b in bookings if session_date(b) == d and b.get("status") != "cancelled"]
+        used = sum(board_slots_of(b, boards) for b in day_b if b.get("status") in REVENUE_STATUSES)
+        pending_slots = sum(board_slots_of(b, boards) for b in day_b if b.get("status") == "pending")
+        days.append({
+            "date": d.isoformat(),
+            "used": min(used, capacity),
+            "pending": min(pending_slots, capacity - min(used, capacity)),
+            "capacity": capacity,
+            "occupancy": round(min(used / capacity, 1) * 100) if capacity else 0,
+            "sessions": sum(1 for b in day_b if b.get("status") in REVENUE_STATUSES),
+            "pending_count": sum(1 for b in day_b if b.get("status") == "pending"),
+            "revenue": sum(price_of(b) for b in day_b if b.get("status") in REVENUE_STATUSES),
+            "unassigned": sum(1 for b in day_b if not b.get("slot") and boards_of(b, boards) > 0),
+        })
+    return days
+
+
 def compute_planning(bookings: list[dict], day: date, settings: dict) -> dict:
     boards, slots_per_day = settings["boards"], settings["slots_per_day"]
     grid = [{"slot": i, "bookings": [], "used": 0} for i in range(1, slots_per_day + 1)]

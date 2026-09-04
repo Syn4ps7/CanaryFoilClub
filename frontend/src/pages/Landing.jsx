@@ -11,6 +11,7 @@ import Corporate from "@/components/Corporate";
 import Reseller from "@/components/Reseller";
 import BookingModal from "@/components/BookingModal";
 import Footer from "@/components/Footer";
+import ScrollTop from "@/components/ScrollTop";
 
 const Intro = () => (
   <motion.div
@@ -78,6 +79,7 @@ export default function Landing() {
           <Reseller onBook={openBooking} />
         </main>
         <Footer />
+        <ScrollTop />
         <BookingModal
           open={booking.open}
           preset={booking.preset}
