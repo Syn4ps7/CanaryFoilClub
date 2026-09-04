@@ -11,6 +11,7 @@ import Corporate from "@/components/Corporate";
 import Reseller from "@/components/Reseller";
 import Testimonials from "@/components/Testimonials";
 import GiftSection from "@/components/GiftSection";
+import Gallery from "@/components/Gallery";
 import GiftModal from "@/components/GiftModal";
 import BookingModal from "@/components/BookingModal";
 import Footer from "@/components/Footer";
@@ -98,6 +99,7 @@ export default function Landing() {
           <Pillars />
           <Experiences onBook={openBooking} />
           <Corporate onBook={openBooking} />
+          <Gallery />
           <Testimonials />
           <GiftSection onGift={() => setGift(true)} />
           <Reseller onBook={openBooking} />

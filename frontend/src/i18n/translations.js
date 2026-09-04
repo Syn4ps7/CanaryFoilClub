@@ -185,6 +185,12 @@ export const translations = {
       success: "Demande reçue — nous vous recontactons sous 24h pour le règlement, puis votre code arrive par email.",
       options: { discovery: "Discovery Session — 145 € / pers.", duo: "Duo VIP Experience — 280 € (2 pers.)" },
     },
+    gallery: {
+      caption: "Galerie",
+      title: "Nos vols, en vrai.",
+      subtitle: "Photos et vidéos de nos sessions à Costa Adeje.",
+      video: "Vidéo",
+    },
     footer: {
       tagline: "Le surf électrique, élevé au rang d'art. Costa Adeje, Ténérife.",
       contact: "Contact VIP",
@@ -379,6 +385,12 @@ export const translations = {
       success: "Request received — we'll contact you within 24h for payment, then your code arrives by email.",
       options: { discovery: "Discovery Session — €145 / person", duo: "Duo VIP Experience — €280 (2 people)" },
     },
+    gallery: {
+      caption: "Gallery",
+      title: "Our flights, for real.",
+      subtitle: "Photos and videos from our sessions in Costa Adeje.",
+      video: "Video",
+    },
     footer: {
       tagline: "Electric surfing, elevated to an art form. Costa Adeje, Tenerife.",
       contact: "VIP Contact",
@@ -572,6 +584,12 @@ export const translations = {
       submitting: "Enviando…",
       success: "Solicitud recibida — te contactamos en 24h para el pago y después tu código llega por email.",
       options: { discovery: "Discovery Session — 145 € / pers.", duo: "Duo VIP Experience — 280 € (2 pers.)" },
+    },
+    gallery: {
+      caption: "Galería",
+      title: "Nuestros vuelos, de verdad.",
+      subtitle: "Fotos y vídeos de nuestras sesiones en Costa Adeje.",
+      video: "Vídeo",
     },
     footer: {
       tagline: "El surf eléctrico, elevado a la categoría de arte. Costa Adeje, Tenerife.",

@@ -87,6 +87,14 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Le proxy email ne supporte pas les pièces jointes → bouton doré « Télécharger le bon cadeau (PDF) » dans l'email d'activation, lien signé `GET /api/vouchers/{code}/pdf?k={download_token}` (403 tant que non activé) ; `GET /api/admin/vouchers/{id}/pdf` (Bearer) + bouton PDF dans l'onglet Bons cadeaux
 - Testé : testing_agent iteration_9 (backend 9/9, frontend 100 %)
 
+## Implemented (2026-06) — Galerie photos & vidéos
+- Stockage Emergent Object Storage (`storage.py`, EMERGENT_LLM_KEY dans backend/.env, préfixe `canary-foil-club/gallery/`) ; métadonnées Mongo `gallery` (soft-delete)
+- API : GET /api/gallery, GET /api/gallery/{id}/file (public, cache 24 h), POST /api/admin/gallery (multipart, 60 Mo, images + vidéos), PATCH légende, POST reorder, DELETE (soft)
+- Admin onglet « Galerie » : upload multiple + drag & drop avec progression, légende, ordre (flèches), suppression
+- Landing : section « Nos vols, en vrai » (#gallery, entre Corporate et Avis), grille cinématique, vidéos en autoplay muet, lightbox (prev/next/Esc) ; masquée si vide ; images de stock conservées
+- Header admin : 6 onglets sur une ligne (whitespace-nowrap)
+- Testé : testing_agent iteration_10 (backend 12/12, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

@@ -1,0 +1,25 @@
+{
+  "summary": "Iteration 10 (Gallery). Backend: 12/12 pytest passed (upload jpeg/png, text rejected, no-token unauthorized, public list sorted asc, file serve with Cache-Control, unknown 404, patch caption, patch empty=400, patch unknown=404, reorder, delete + verify gone + delete-again 404). Frontend: admin /admin/gallery upload via file input triggers progress, toast 'ajouté à la galerie', new card, caption edit + save toast 'Légende enregistrée', move up/down work, delete accepts confirm and toast 'Média retiré'. Landing #gallery section renders, tiles load (naturalWidth>0), lightbox opens and Escape closes it, next/prev cycle. Language switch to EN shows 'Our flights, for real.'. Admin nav renders on single row at 1920 and 1366 (all 6 tabs, rows=1). Mobile admin-nav-mobile visible at 390px. Left gallery with only 'Test vol du matin' at the end.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration10_gallery.py",
+    "/app/test_reports/pytest/iteration10.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is >780 lines; consider splitting into routers (gallery, vouchers, reviews, admin) for maintainability.",
+    "Upload endpoint reads the whole file into memory before size check — could DoS memory. Consider streaming/size cap header check before read().",
+    "The public /api/gallery ordering uses (order asc, created_at desc). Reorder only updates matched ids; if a stale id list is submitted, non-listed items keep old orders which can collide with new ones (no gap resolution). Not blocking but could produce inconsistent ordering.",
+    "PATCH /api/admin/gallery: setting caption to only whitespace results in caption=None (silent). Fine but worth documenting."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration10_gallery.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin / admin (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Cleaned up my TEST_ uploads; left the pre-existing 'Test vol du matin' item as instructed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Gallery routes at /api/gallery (public) and /api/admin/gallery (bearer). Emergent Object Storage is soft-delete only. When running pytest with parallel xdist (default config in /app/backend/pytest.ini), use `-o addopts=` to force sequential; test file uses module-level state that xdist splits across workers. Landing lang switcher testids: lang-switcher-fr/en/es. Admin nav testids: admin-nav (desktop md+) / admin-nav-mobile (< md, 768). Only one gallery item ('Test vol du matin', id 6481215d-0f3f-4e75-a97f-3f486d47b035) remains at end of testing."
+}

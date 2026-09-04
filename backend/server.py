@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, Query
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -27,6 +27,7 @@ from engagement import send_review_request, run_review_requests, build_weekly_re
 from vouchers import gen_code, voucher_value, voucher_state, find_voucher, redeem_voucher, mark_paid_fields, VOUCHER_EXPERIENCES
 from emailer import notify_voucher_buyer, notify_owner_voucher
 from voucher_pdf import build_voucher_pdf
+from storage import init_storage, put_object, get_object, APP_NAME
 import secrets
 from fastapi.responses import Response
 
@@ -131,6 +132,27 @@ class Voucher(VoucherCreate):
 
 class VoucherUpdate(BaseModel):
     status: str
+
+
+class GalleryItem(BaseModel):
+    id: str
+    kind: str
+    content_type: str
+    caption: Optional[str] = None
+    order: int = 0
+    size: int = 0
+    width: Optional[int] = None
+    height: Optional[int] = None
+    created_at: str
+
+
+class GalleryUpdate(BaseModel):
+    caption: Optional[str] = Field(default=None, max_length=160)
+    order: Optional[int] = Field(default=None, ge=0)
+
+
+class ReorderInput(BaseModel):
+    ids: List[str]
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -591,6 +613,93 @@ async def admin_resend_voucher(voucher_id: str, admin: dict = Depends(require_ad
     return {**v, "email_sent": True}
 
 
+# ---------- Gallery ----------
+
+GALLERY_TYPES = {"image/jpeg": "image", "image/png": "image", "image/webp": "image", "image/gif": "image",
+                 "video/mp4": "video", "video/webm": "video", "video/quicktime": "video"}
+GALLERY_MAX = 60 * 1024 * 1024
+
+
+def _gallery_public(g: dict) -> dict:
+    return {k: g.get(k) for k in ("id", "kind", "content_type", "caption", "order", "size", "width", "height", "created_at")}
+
+
+@api_router.get("/gallery", response_model=List[GalleryItem])
+async def public_gallery():
+    docs = await db.gallery.find({"is_deleted": False}, {"_id": 0}).sort([("order", 1), ("created_at", -1)]).to_list(200)
+    return [_gallery_public(d) for d in docs]
+
+
+@api_router.get("/gallery/{item_id}/file")
+async def gallery_file(item_id: str):
+    g = await db.gallery.find_one({"id": item_id, "is_deleted": False}, {"_id": 0})
+    if not g:
+        raise HTTPException(status_code=404, detail="Média introuvable")
+    data, ct = await get_object(g["storage_path"])
+    return Response(content=data, media_type=g.get("content_type") or ct,
+                    headers={"Cache-Control": "public, max-age=86400", "Accept-Ranges": "bytes"})
+
+
+@api_router.post("/admin/gallery", response_model=GalleryItem)
+async def admin_gallery_upload(file: UploadFile = File(...), caption: Optional[str] = Form(default=None), admin: dict = Depends(require_admin)):
+    kind = GALLERY_TYPES.get((file.content_type or "").lower())
+    if not kind:
+        raise HTTPException(status_code=400, detail="Format non pris en charge (JPG, PNG, WebP, GIF, MP4, WebM, MOV)")
+    data = await file.read()
+    if len(data) > GALLERY_MAX:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (60 Mo max)")
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else file.content_type.split("/")[-1]
+    item_id = str(uuid.uuid4())
+    width = height = None
+    if kind == "image":
+        try:
+            from PIL import Image
+            with Image.open(io.BytesIO(data)) as im:
+                width, height = im.size
+        except Exception:
+            pass
+    result = await put_object(f"{APP_NAME}/gallery/{item_id}.{ext}", data, file.content_type)
+    last = await db.gallery.find_one({"is_deleted": False}, {"_id": 0, "order": 1}, sort=[("order", -1)])
+    doc = {"id": item_id, "storage_path": result["path"], "kind": kind, "content_type": file.content_type, "original_filename": file.filename,
+           "caption": (caption or "").strip()[:160] or None, "order": (last["order"] + 1) if last else 0, "size": result.get("size", len(data)),
+           "width": width, "height": height, "is_deleted": False, "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.gallery.insert_one(doc)
+    return _gallery_public(doc)
+
+
+@api_router.get("/admin/gallery", response_model=List[GalleryItem])
+async def admin_gallery(admin: dict = Depends(require_admin)):
+    return await public_gallery()
+
+
+@api_router.patch("/admin/gallery/{item_id}", response_model=GalleryItem)
+async def admin_gallery_update(item_id: str, input: GalleryUpdate, admin: dict = Depends(require_admin)):
+    update = {k: v for k, v in input.model_dump().items() if v is not None}
+    if "caption" in update:
+        update["caption"] = update["caption"].strip() or None
+    if not update:
+        raise HTTPException(status_code=400, detail="Aucune modification")
+    res = await db.gallery.find_one_and_update({"id": item_id, "is_deleted": False}, {"$set": update}, projection={"_id": 0}, return_document=True)
+    if not res:
+        raise HTTPException(status_code=404, detail="Média introuvable")
+    return _gallery_public(res)
+
+
+@api_router.post("/admin/gallery/reorder")
+async def admin_gallery_reorder(input: ReorderInput, admin: dict = Depends(require_admin)):
+    for i, item_id in enumerate(input.ids):
+        await db.gallery.update_one({"id": item_id}, {"$set": {"order": i}})
+    return {"ok": True}
+
+
+@api_router.delete("/admin/gallery/{item_id}")
+async def admin_gallery_delete(item_id: str, admin: dict = Depends(require_admin)):
+    res = await db.gallery.update_one({"id": item_id, "is_deleted": False}, {"$set": {"is_deleted": True}})
+    if not res.matched_count:
+        raise HTTPException(status_code=404, detail="Média introuvable")
+    return {"ok": True}
+
+
 # ---------- Weekly report ----------
 
 @api_router.get("/admin/reports/weekly")
@@ -654,6 +763,11 @@ async def startup():
     await db.reviews.create_index("booking_id", unique=True)
     await db.bookings.create_index("review_token")
     await db.vouchers.create_index("code", unique=True)
+    try:
+        await asyncio.to_thread(init_storage)
+        logger.info("Storage initialized")
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
 
     async def reviews_job():
         if datetime.now(CANARY_TZ).hour >= REVIEW_HOUR:

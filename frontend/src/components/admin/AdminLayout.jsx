@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound, Star, Gift } from "lucide-react";
+import { LayoutDashboard, ListOrdered, CalendarRange, LogOut, KeyRound, Star, Gift, Images } from "lucide-react";
 import ChangePassword from "@/components/admin/ChangePassword";
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { to: "/admin/planning", label: "Planning", icon: CalendarRange, id: "nav-planning" },
   { to: "/admin/reviews", label: "Avis", icon: Star, id: "nav-reviews" },
   { to: "/admin/vouchers", label: "Bons cadeaux", icon: Gift, id: "nav-vouchers" },
+  { to: "/admin/gallery", label: "Galerie", icon: Images, id: "nav-gallery" },
 ];
 
 const AdminLayout = ({ admin, onLogout, children }) => {
@@ -17,14 +18,14 @@ const AdminLayout = ({ admin, onLogout, children }) => {
   <div className="min-h-screen bg-abyss noise-overlay text-white" data-testid="admin-shell">
     <header className="sticky top-0 z-20 border-b border-white/10 bg-abyss/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 py-3.5">
-        <div className="flex items-center gap-6 sm:gap-10">
+        <div className="flex items-center gap-5 lg:gap-8">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-glow/90">Admin</p>
-            <h1 className="font-syne text-lg font-extrabold tracking-tight leading-none">
+            <h1 className="font-syne text-lg font-extrabold tracking-tight leading-none whitespace-nowrap">
               Canary <span className="text-glow">Foil</span> Club
             </h1>
           </div>
-          <nav className="hidden md:flex items-center gap-1" data-testid="admin-nav">
+          <nav className="hidden md:flex items-center gap-0.5" data-testid="admin-nav">
             {NAV.map(({ to, label, icon: Icon, end, id }) => (
               <NavLink
                 key={to}
@@ -32,7 +33,7 @@ const AdminLayout = ({ admin, onLogout, children }) => {
                 end={end}
                 data-testid={id}
                 className={({ isActive }) =>
-                  `inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                  `inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors ${
                     isActive ? "bg-glow/10 text-glow border border-glow/30" : "text-slate-400 border border-transparent hover:text-white hover:bg-white/5"
                   }`
                 }
