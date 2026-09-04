@@ -84,6 +84,8 @@ def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | N
     sessions = {"total": 0, "today": 0, "month": 0}
     used = {"today": 0, "month": 0}
     status_counts = {}
+    revenue_by_status = {"confirmed": 0.0, "completed": 0.0}
+    sessions_by_status = {"confirmed": 0, "completed": 0}
 
     for b in bookings:
         st = b.get("status", "pending")
@@ -97,6 +99,8 @@ def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | N
 
         revenue["total"] += amount
         sessions["total"] += 1
+        revenue_by_status[st] += amount
+        sessions_by_status[st] += 1
         by_offer[CATEGORY.get(b.get("experience"), "b2c")] += amount
         if b.get("partner"):
             commissions += amount * COMMISSION_RATE
@@ -124,6 +128,8 @@ def compute_stats(bookings: list[dict], settings: dict, vouchers: list[dict] | N
         "commissions": round(commissions, 2),
         "commission_rate": COMMISSION_RATE,
         "status_counts": status_counts,
+        "revenue_by_status": revenue_by_status,
+        "sessions_by_status": sessions_by_status,
         "pending": status_counts.get("pending", 0),
     }
 

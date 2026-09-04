@@ -1,0 +1,50 @@
+{
+  "summary": "Iteration 11 — Booking→Revenue (CA) consistency + status transitions + Dashboard StatusBreakdown. 13/13 backend pytest cases pass; full frontend transition chain (pending→confirmed→completed→cancelled→pending) verified against KPI cards and StatusBreakdown panel. Self-check line matches kpi-revenue-total (4305€) and session count (11). No issues found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration11_stats.py",
+    "/app/test_reports/pytest/iteration11.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "stats.py compute_stats() correctly filters REVENUE_STATUSES={confirmed,completed} and uses session date (booking.date) — matches design intent per agent-to-agent note.",
+    "Vouchers counted at paid_at once under by_offer.gift; redeemed voucher bookings use price_of()=max(base-discount,0) so no double-counting (verified with existing DB data).",
+    "StatusBreakdown self-check line correctly cross-validates counts and revenue against KPIs.",
+    "Minor: server.py admin_stats loads all bookings/vouchers into memory (to_list(5000)). Acceptable at current scale but consider aggregation pipeline if data grows."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration11_stats.py"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100%"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "Created 1 booking (discovery, 2 participants, 290€, delivered@resend.dev, today) — final status: cancelled (per instructions to not pollute real numbers).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_iteration11_stats.py covers CA consistency across /api/admin/stats vs bookings vs vouchers, and full status transition semantics. Reusable for regression. Baseline CA at test time: 4305€ with 7 confirmed + 4 completed + 570€ gift. Pre-existing TEST_* bookings from prior iterations are still in DB (2 pending + 1 confirmed + 1 cancelled).",
+  "detailed_test_results": {
+    "backend_consistency": {
+      "sessions_total == count(confirmed+completed)": "PASS",
+      "revenue.total == sum(price_of confirmed+completed) + sum(voucher.value paid/redeemed)": "PASS",
+      "revenue_by_status.confirmed + completed + by_offer.gift == revenue.total": "PASS",
+      "sessions_by_status sums to sessions.total": "PASS",
+      "status_counts matches per-status counts": "PASS",
+      "revenue.month/sessions.month use session date": "PASS",
+      "voucher-redeemed booking uses price_of=base-discount, no double count": "PASS"
+    },
+    "backend_transitions_via_PATCH": {
+      "create pending (POST /api/booking, discovery×2, 290€) → stats unchanged": "PASS",
+      "PATCH confirmed → revenue+290, sessions+1, today+290, by_status.confirmed+290": "PASS",
+      "PATCH completed → total unchanged, 290 moves confirmed→completed": "PASS",
+      "PATCH cancelled → total-290, sessions-1 (back to baseline)": "PASS",
+      "PATCH back to confirmed → +290 again": "PASS",
+      "Final PATCH cancelled (cleanup)": "PASS"
+    },
+    "frontend_dashboard": {
+      "status-breakdown visible with all 5 sub-cards + self-check": "PASS",
+      "self-check numbers equal kpi-revenue-total and its session count": "PASS (11 sessions, 4305€)",
+      "pending→Confirmée via booking-status-select: kpi+Δ (290€), confirmed count +1": "PASS",
+      "Confirmée→Réalisée: total unchanged, confirmed -1 / completed +1": "PASS",
+      "Réalisée→Annulée: total decreases": "PASS",
+      "Restore to original status: totals match baseline": "PASS"
+    }
+  }
+}

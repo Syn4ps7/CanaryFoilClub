@@ -95,6 +95,12 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Header admin : 6 onglets sur une ligne (whitespace-nowrap)
 - Testé : testing_agent iteration_10 (backend 12/12, frontend 100 %)
 
+## Vérification (2026-06) — Lien réservations ↔ CA
+- Règle confirmée : CA = réservations `confirmed` + `completed` (montant net après bon cadeau, à la date de session) + bons cadeaux activés (paid_at). `pending`/`cancelled` hors CA. Passage confirmée → réalisée : CA inchangé, bascule dans revenue_by_status.
+- Ajout `revenue_by_status` / `sessions_by_status` dans /api/admin/stats + panneau « Réservations → chiffre d'affaires » (StatusBreakdown) avec ligne d'auto-vérification (somme des statuts = CA total, sessions = confirmées + réalisées)
+- À venir (Stripe) : paiement réussi → statut `confirmed` automatique (webhook), bon cadeau → `paid` automatique
+- Testé : testing_agent iteration_11 (backend 13/13, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)
