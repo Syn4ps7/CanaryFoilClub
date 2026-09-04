@@ -20,7 +20,7 @@ import re
 from datetime import datetime, timezone, date, timedelta
 from emailer import notify_owner, notify_client, notify_confirmed
 from auth import login as auth_login, seed_admin, get_current_admin_factory, change_password
-from stats import compute_stats, compute_planning, compute_week, price_of, slot_label, DEFAULT_SETTINGS, DEFAULT_SLOT_TIMES, MAX_BOARDS, MAX_SLOTS
+from stats import compute_stats, compute_planning, compute_week, revenue_series, price_of, slot_label, DEFAULT_SETTINGS, DEFAULT_SLOT_TIMES, MAX_BOARDS, MAX_SLOTS
 from weather import get_weather, SPOT_ADDRESS
 from reminders import meeting_point, send_reminder, run_reminders, reminder_loop, periodic, REMINDER_HOUR, TZ as CANARY_TZ
 from engagement import send_review_request, run_review_requests, build_weekly_report, run_weekly_report, REVIEW_HOUR
@@ -307,6 +307,15 @@ async def admin_stats(admin: dict = Depends(require_admin)):
     stats["recent"] = [_normalize(b) for b in bookings[:10]]
     stats["total_bookings"] = len(bookings)
     return stats
+
+
+@api_router.get("/admin/stats/revenue-series")
+async def admin_revenue_series(days: int = Query(default=30, ge=7, le=365), admin: dict = Depends(require_admin)):
+    bookings = await db.bookings.find({"status": {"$in": ["confirmed", "completed"]}}, {"_id": 0}).to_list(10000)
+    vouchers = await db.vouchers.find({"status": {"$in": ["paid", "redeemed"]}}, {"_id": 0}).to_list(5000)
+    series = revenue_series([_normalize(b) for b in bookings], vouchers, days)
+    return {"days": days, "series": series, "total": round(sum(d["revenue"] for d in series), 2),
+            "best_day": max(series, key=lambda d: d["revenue"]) if series else None}
 
 
 @api_router.get("/admin/bookings", response_model=List[Booking])

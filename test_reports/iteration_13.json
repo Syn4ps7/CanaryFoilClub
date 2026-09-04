@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 13 (revenue trend chart + CGV/Terms modal) tested end-to-end. Backend GET /api/admin/stats/revenue-series verified for auth, default/90j, 422 validation on days=5/400, cumulative monotonicity, last cumulative == total, sum(revenue)==total, dates consecutive ending today (UTC), and cross-check with /api/admin/stats (30d total <= revenue.total, today entry == revenue.today). Frontend RevenueChart renders total, SVG chart with bars/paths, 30/90 toggle switches subtext, hovering a bar reveals tooltip, best-day line shown. Footer CGV link opens Terms modal in FR/EN/ES with correct titles (Conditions Générales de Vente (CGV) / Terms and Conditions of Sale / Condiciones Generales de Venta), 8 sections (h3 count == 8), first section '1. Champ d'application et objet', text contains 'Santa Cruz de Tenerife', data-lenis-prevent on modal, Escape and terms-close both work.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration13_revenue_series.py",
+    "/app/test_reports/pytest/iter13.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "revenue_series() gracefully handles empty series (list length is always == days so max() is safe).",
+    "The 'Bearer required' behaviour returns 403 via HTTPBearer when no Authorization header is sent (FastAPI default). Backend spec calls for 401 — currently returns 403. Not blocking (still denies access) but worth aligning if strict 401 semantics matter.",
+    "RevenueChart avg divides by fixed 'days' state; correct.",
+    "TermsModal uses AnimatePresence — modal DOM lingers briefly during exit animation; tests should wait ~600ms before asserting absence."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100% (FR/EN/ES modal + revenue chart 30/90/tooltip/best)"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "None — used existing seeded bookings/vouchers.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Public base URL is https://canary-foil-club.preview.emergentagent.com. Backend query validation on revenue-series uses ge=7,le=365 (matches spec 422 for 5 and 400). Note: the app does NOT expose lang-toggle-en/es testids; language switcher uses data-testid='lang-switcher-fr|en|es'. Update spec accordingly.",
+  "rca of the issue": "No issues to report."
+}

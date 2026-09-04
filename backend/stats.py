@@ -201,3 +201,27 @@ def compute_planning(bookings: list[dict], day: date, settings: dict) -> dict:
         "capacity": boards * slots_per_day,
         "slot_times": (settings.get("slot_times") or DEFAULT_SLOT_TIMES)[:slots_per_day],
     }
+
+
+def revenue_series(bookings: list[dict], vouchers: list[dict], days: int = 30) -> list[dict]:
+    from datetime import timedelta
+    today = datetime.now(timezone.utc).date()
+    start = today - timedelta(days=days - 1)
+    series = {(start + timedelta(days=i)).isoformat(): {"date": (start + timedelta(days=i)).isoformat(), "revenue": 0.0, "bookings": 0, "gift": 0.0} for i in range(days)}
+    for b in bookings:
+        if b.get("status") not in REVENUE_STATUSES:
+            continue
+        cd = cash_date(b)
+        if cd and cd.isoformat() in series:
+            series[cd.isoformat()]["revenue"] += price_of(b)
+            series[cd.isoformat()]["bookings"] += 1
+    for v in vouchers:
+        if v.get("status") in ("paid", "redeemed") and v.get("paid_at") and v["paid_at"][:10] in series:
+            series[v["paid_at"][:10]]["gift"] += float(v.get("value") or 0)
+            series[v["paid_at"][:10]]["revenue"] += float(v.get("value") or 0)
+    out = list(series.values())
+    running = 0.0
+    for d in out:
+        running += d["revenue"]
+        d["cumulative"] = round(running, 2)
+    return out

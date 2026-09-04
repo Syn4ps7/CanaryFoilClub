@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { MessageCircle, Instagram, MapPin, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import TermsModal from "./TermsModal";
 import { Reveal } from "./Reveal";
 
 const Footer = () => {
   const { t } = useLanguage();
+  const [terms, setTerms] = useState(false);
 
   return (
     <footer data-testid="site-footer" className="relative border-t border-white/10 bg-abyss pt-20 pb-10 overflow-hidden">
@@ -75,9 +78,13 @@ const Footer = () => {
         </p>
 
         <p className="mt-8 border-t border-white/10 pt-6 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-slate-600">
-          {t.footer.legal}
+          © 2026 Canary Foil Club ·{" "}
+          <button data-testid="footer-terms-link" onClick={() => setTerms(true)} className="underline-offset-4 transition-colors hover:text-glow hover:underline">
+            {t.footer.terms}
+          </button>
         </p>
       </div>
+      <TermsModal open={terms} onClose={() => setTerms(false)} />
     </footer>
   );
 };

@@ -8,6 +8,7 @@ import BookingsTable from "@/components/admin/BookingsTable";
 import CapacitySettings from "@/components/admin/CapacitySettings";
 import WeeklyReportCard from "@/components/admin/WeeklyReportCard";
 import StatusBreakdown from "@/components/admin/StatusBreakdown";
+import RevenueChart from "@/components/admin/RevenueChart";
 
 const AdminDashboard = ({ onLogout }) => {
   const [stats, setStats] = useState(null);
@@ -112,6 +113,8 @@ const AdminDashboard = ({ onLogout }) => {
             <KpiCard testId="kpi-revenue-total" label="CA total" value={eur(s.revenue.total)} sub={`${plural(s.sessions.total, "session")} confirmées ou réalisées · ${s.total_bookings} demandes`} icon={Euro} delay={0.12} />
             <KpiCard testId="kpi-commissions" label="Commissions partenaires" value={eur(s.commissions)} sub={`${Math.round(s.commission_rate * 100)} % sur les réservations apportées`} icon={Handshake} accent="gold" delay={0.18} />
           </div>
+
+          <RevenueChart />
 
           <StatusBreakdown stats={s} />
 

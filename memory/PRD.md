@@ -106,6 +106,11 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Fix : `confirmed_at` posé au premier passage confirmed/completed ; revenue.today/month calculés à la date d'encaissement (`cash_date` = confirmed_at, fallback created_at) ; sessions/occupation restent à la date de session ; KPIs renommés « CA encaissé aujourd'hui / ce mois » + `confirmations {today, month}`
 - Testé : testing_agent iteration_12 (100 %)
 
+## Implemented (2026-06) — Courbe du CA + CGV
+- GET /api/admin/stats/revenue-series?days=30|90 (7-365) : série journalière par date d'encaissement (bookings confirmées/réalisées via confirmed_at + bons cadeaux paid_at), cumul, total, meilleur jour ; `RevenueChart.jsx` (recharts ComposedChart : barres CA du jour + aire dorée cumul, bascule 30 j / 90 j, tooltip) en tête du dashboard
+- CGV : `i18n/terms.js` (8 articles FR/EN/ES, texte fourni par l'utilisateur), `TermsModal.jsx` (data-lenis-prevent, Esc), lien « CGV » dans le footer (`footer.terms`)
+- Testé : testing_agent iteration_13 (backend 6/6, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)
