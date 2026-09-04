@@ -43,7 +43,15 @@ const Intro = () => (
 
 export default function Landing() {
   const [intro, setIntro] = useState(true);
-  const [booking, setBooking] = useState({ open: false, preset: null });
+  const [booking, setBooking] = useState({ open: false, preset: null, code: null });
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("code");
+    if (code) {
+      const timer = setTimeout(() => setBooking({ open: true, preset: null, code }), 2100);
+      return () => clearTimeout(timer);
+    }
+  }, []);
   const [gift, setGift] = useState(false);
 
   useEffect(() => {
@@ -100,7 +108,8 @@ export default function Landing() {
         <BookingModal
           open={booking.open}
           preset={booking.preset}
-          onClose={() => setBooking({ open: false, preset: null })}
+          presetCode={booking.code}
+          onClose={() => setBooking({ open: false, preset: null, code: null })}
         />
       </div>
     </LanguageProvider>

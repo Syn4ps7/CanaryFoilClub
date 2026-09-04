@@ -26,6 +26,9 @@ from reminders import meeting_point, send_reminder, run_reminders, reminder_loop
 from engagement import send_review_request, run_review_requests, build_weekly_report, run_weekly_report, REVIEW_HOUR
 from vouchers import gen_code, voucher_value, voucher_state, find_voucher, redeem_voucher, mark_paid_fields, VOUCHER_EXPERIENCES
 from emailer import notify_voucher_buyer, notify_owner_voucher
+from voucher_pdf import build_voucher_pdf
+import secrets
+from fastapi.responses import Response
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -123,6 +126,7 @@ class Voucher(VoucherCreate):
     redeemed_at: Optional[str] = None
     redeemed_booking_id: Optional[str] = None
     email_sent: Optional[bool] = None
+    download_token: Optional[str] = None
 
 
 class VoucherUpdate(BaseModel):
@@ -500,7 +504,8 @@ async def create_voucher(input: VoucherCreate):
     while await db.vouchers.find_one({"code": code}):
         code = gen_code()
     v = Voucher(**{**input.model_dump(), "participants": participants}, id=str(uuid.uuid4()), code=code,
-                value=voucher_value(input.experience, participants), created_at=datetime.now(timezone.utc).isoformat())
+                value=voucher_value(input.experience, participants), created_at=datetime.now(timezone.utc).isoformat(),
+                download_token=secrets.token_urlsafe(16))
     await db.vouchers.insert_one(v.model_dump())
     await notify_owner_voucher(v.model_dump())
     return v
@@ -514,6 +519,36 @@ async def check_voucher(code: str):
     ok, reason = voucher_state(v)
     return {"valid": ok, "reason": reason, "value": v["value"] if ok else None, "experience": v["experience"] if ok else None,
             "participants": v["participants"] if ok else None, "recipient_name": v["recipient_name"] if ok else None}
+
+
+def _voucher_pdf_url(v: dict) -> str:
+    return f"{os.environ['SITE_URL'].rstrip('/')}/api/vouchers/{v['code']}/pdf?k={v.get('download_token', '')}"
+
+
+def _pdf_response(v: dict) -> Response:
+    pdf = build_voucher_pdf(v, os.environ["SITE_URL"])
+    return Response(content=pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="bon-cadeau-{v["code"]}.pdf"'})
+
+
+@api_router.get("/vouchers/{code}/pdf")
+async def voucher_pdf(code: str, k: str = Query(min_length=8)):
+    v = await find_voucher(db, code)
+    if not v or not v.get("download_token") or not secrets.compare_digest(v["download_token"], k):
+        raise HTTPException(status_code=404, detail="Bon cadeau introuvable")
+    if v["status"] not in ("paid", "redeemed"):
+        raise HTTPException(status_code=403, detail="Bon cadeau non activé")
+    return _pdf_response(v)
+
+
+@api_router.get("/admin/vouchers/{voucher_id}/pdf")
+async def admin_voucher_pdf(voucher_id: str, admin: dict = Depends(require_admin)):
+    v = await db.vouchers.find_one({"id": voucher_id}, {"_id": 0})
+    if not v:
+        raise HTTPException(status_code=404, detail="Bon cadeau introuvable")
+    if not v.get("expires_at"):
+        v = {**v, "expires_at": None}
+    return _pdf_response(v)
 
 
 @api_router.get("/admin/vouchers", response_model=List[Voucher])
@@ -536,7 +571,7 @@ async def admin_update_voucher(voucher_id: str, input: VoucherUpdate, admin: dic
     await db.vouchers.update_one({"id": voucher_id}, {"$set": update})
     v = await db.vouchers.find_one({"id": voucher_id}, {"_id": 0})
     if input.status == "paid" and not v.get("email_sent"):
-        sent = await notify_voucher_buyer(v)
+        sent = await notify_voucher_buyer(v, _voucher_pdf_url(v))
         await db.vouchers.update_one({"id": voucher_id}, {"$set": {"email_sent": sent}})
         v["email_sent"] = sent
     return v
@@ -549,7 +584,7 @@ async def admin_resend_voucher(voucher_id: str, admin: dict = Depends(require_ad
         raise HTTPException(status_code=404, detail="Bon cadeau introuvable")
     if v["status"] not in ("paid", "redeemed"):
         raise HTTPException(status_code=400, detail="Activez d'abord le bon (paiement reçu)")
-    sent = await notify_voucher_buyer(v)
+    sent = await notify_voucher_buyer(v, _voucher_pdf_url(v))
     if not sent:
         raise HTTPException(status_code=502, detail="Envoi impossible (email injoignable)")
     await db.vouchers.update_one({"id": voucher_id}, {"$set": {"email_sent": True}})

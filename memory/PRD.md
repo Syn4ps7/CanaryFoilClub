@@ -82,6 +82,11 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Fix : `data-lenis-prevent` sur booking-modal et gift-modal ; `lenis.stop()/start()` + `overflow:hidden` sur html/body pendant l'ouverture d'un panneau (Landing.jsx)
 - Testé : testing_agent iteration_7 + iteration_8 (100 %)
 
+## Implemented (2026-06) — Bon cadeau PDF
+- `voucher_pdf.py` (reportlab + qrcode) : A5 paysage, design Luxury Oceanic, code, valeur, destinataire, message, validité, QR vers `SITE_URL/?code=…` (ouvre le formulaire avec le code prérempli)
+- Le proxy email ne supporte pas les pièces jointes → bouton doré « Télécharger le bon cadeau (PDF) » dans l'email d'activation, lien signé `GET /api/vouchers/{code}/pdf?k={download_token}` (403 tant que non activé) ; `GET /api/admin/vouchers/{id}/pdf` (Bearer) + bouton PDF dans l'onglet Bons cadeaux
+- Testé : testing_agent iteration_9 (backend 9/9, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

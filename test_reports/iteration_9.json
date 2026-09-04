@@ -1,0 +1,14 @@
+{
+  "summary": "Iteration 9 voucher PDF: 9/9 backend pytest tests PASS and all frontend flows verified. Public GET /api/vouchers/{code}/pdf?k=... returns 403 while pending, 404 on wrong token, 422 on token <8 chars, and 200 application/pdf (>3KB, body starts with %PDF, Content-Disposition contains bon-cadeau-{code}.pdf) after admin PATCHes status=paid. Case-insensitive code accepted. Admin GET /api/admin/vouchers/{id}/pdf works while pending (200 PDF), returns 401 without token and 404 on unknown id. POST /api/vouchers returns a download_token of length >=16. Backend log confirms 'Voucher email sent' for delivered@resend.dev. build_voucher_email HTML contains the PDF link and the word 'PDF'. Frontend admin /admin/vouchers: voucher-pdf-{id} buttons present; clicking triggered a real browser download with filename bon-cadeau-CFC-5PGQ-MN2L.pdf. Landing /?code=CFC-TEST-1234 auto-opens booking modal after intro with booking-input-voucher='CFC-TEST-1234' and booking-voucher-status='Code introuvable'; /?code=CFC-P9DY-W36C shows 'Bon cadeau valide — 280 € déduits'. Regression: hero-cta-book-button still opens modal with empty voucher input.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_iteration9.py", "/app/test_reports/pytest/iter9.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_iteration9.py"],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100%"},
+  "seed_data_creation": "Created a few TEST_ vouchers via API during pytest; cleaned up 15 TEST vouchers from db.vouchers after tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 9 fully verified. Existing paid voucher CFC-P9DY-W36C still present for /?code= prefill tests. Test file /app/backend/tests/test_iteration9.py can be reused as regression."
+}

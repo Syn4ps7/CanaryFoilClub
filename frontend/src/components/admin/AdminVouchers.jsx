@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Gift, Copy, Mail, CheckCircle2, Ban, RotateCcw } from "lucide-react";
+import { Gift, Copy, Mail, CheckCircle2, Ban, RotateCcw, FileDown } from "lucide-react";
 import { adminApi, eur, formatApiError } from "@/lib/adminApi";
 import { EXP_LABELS } from "@/components/admin/BookingsTable";
 
@@ -47,6 +47,20 @@ const AdminVouchers = ({ onLogout }) => {
   const setStatus = (v, status, msg) => act(v.id, () => adminApi.patch(`/admin/vouchers/${v.id}`, { status }), msg);
   const resend = (v) => act(v.id, () => adminApi.post(`/admin/vouchers/${v.id}/resend`), "Bon cadeau renvoyé par email");
   const copy = (code) => navigator.clipboard?.writeText(code).then(() => toast.success("Code copié"));
+  const downloadPdf = async (v) => {
+    try {
+      const res = await adminApi.get(`/admin/vouchers/${v.id}/pdf`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bon-cadeau-${v.code}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF téléchargé");
+    } catch (err) {
+      toast.error(formatApiError(err));
+    }
+  };
 
   const sum = (st) => vouchers?.filter((v) => v.status === st).reduce((a, v) => a + v.value, 0) || 0;
   const count = (st) => vouchers?.filter((v) => v.status === st).length || 0;
@@ -102,6 +116,9 @@ const AdminVouchers = ({ onLogout }) => {
               </div>
               {v.message && <p className="mt-3 font-cormorant text-base italic text-slate-300">« {v.message} »</p>}
               <div className="mt-4 flex flex-wrap gap-2">
+                <button data-testid={`voucher-pdf-${v.id}`} onClick={() => downloadPdf(v)} className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold hover:bg-gold/20">
+                  <FileDown size={13} /> PDF
+                </button>
                 {v.status === "pending" && (
                   <button data-testid={`voucher-activate-${v.id}`} disabled={busy === v.id} onClick={() => setStatus(v, "paid", "Bon activé — code envoyé à l'acheteur")} className="inline-flex items-center gap-1.5 rounded-full border border-glow/50 bg-glow/10 px-3 py-1.5 text-xs font-semibold text-glow hover:bg-glow/20 disabled:opacity-40">
                     <CheckCircle2 size={13} /> Activer (paiement reçu)

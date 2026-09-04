@@ -10,7 +10,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const inputCls =
   "w-full rounded-xl border border-white/15 bg-deep px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-colors duration-300 focus:border-glow/70";
 
-const BookingModal = ({ open, preset, onClose }) => {
+const BookingModal = ({ open, preset, presetCode, onClose }) => {
   const { t, lang } = useLanguage();
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({
@@ -45,7 +45,8 @@ const BookingModal = ({ open, preset, onClose }) => {
 
   useEffect(() => {
     if (open && preset) setForm((f) => ({ ...f, experience: preset }));
-  }, [open, preset]);
+    if (open && presetCode) setForm((f) => ({ ...f, voucher_code: presetCode.toUpperCase() }));
+  }, [open, preset, presetCode]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 

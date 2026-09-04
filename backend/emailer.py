@@ -542,6 +542,7 @@ VOUCHER_EMAIL = {
         "lbl_value": "Valeur",
         "lbl_valid": "Valable jusqu'au",
         "lbl_message": "Votre message",
+        "pdf": "Télécharger le bon cadeau (PDF à imprimer)",
         "note": "Le bon cadeau est utilisable une seule fois, pour une réservation sur le site Canary Foil Club, selon disponibilités et conditions de mer.",
         "question": 'Une question ? Notre ligne WhatsApp VIP : <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
         "footer": "Canary Foil Club — Costa Adeje, Ténérife. Bon cadeau nominatif.",
@@ -556,6 +557,7 @@ VOUCHER_EMAIL = {
         "lbl_value": "Value",
         "lbl_valid": "Valid until",
         "lbl_message": "Your message",
+        "pdf": "Download the gift voucher (printable PDF)",
         "note": "The voucher can be used once, for a booking on the Canary Foil Club website, subject to availability and sea conditions.",
         "question": 'Questions? Our VIP WhatsApp line: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
         "footer": "Canary Foil Club — Costa Adeje, Tenerife. Personal gift voucher.",
@@ -570,6 +572,7 @@ VOUCHER_EMAIL = {
         "lbl_value": "Valor",
         "lbl_valid": "Válido hasta",
         "lbl_message": "Tu mensaje",
+        "pdf": "Descargar el bono regalo (PDF para imprimir)",
         "note": "El bono se puede usar una sola vez, para una reserva en la web de Canary Foil Club, según disponibilidad y condiciones del mar.",
         "question": '¿Dudas? Nuestra línea VIP de WhatsApp: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
         "footer": "Canary Foil Club — Costa Adeje, Tenerife. Bono regalo nominativo.",
@@ -577,7 +580,7 @@ VOUCHER_EMAIL = {
 }
 
 
-def build_voucher_email(v: dict) -> tuple[str, str]:
+def build_voucher_email(v: dict, pdf_url: str | None = None) -> tuple[str, str]:
     lang = v.get("lang") if v.get("lang") in VOUCHER_EMAIL else "fr"
     s = VOUCHER_EMAIL[lang]
     exp = CLIENT_EXP_LABELS[lang].get(v["experience"], v["experience"])
@@ -599,7 +602,9 @@ def build_voucher_email(v: dict) -> tuple[str, str]:
         f'<p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#00f0ff;text-transform:uppercase;margin:0 0 8px;text-align:center">{escape(s["lbl_code"])}</p>'
         f'<p style="font-family:Courier New,monospace;font-size:28px;letter-spacing:4px;font-weight:bold;color:#f8fafc;background:#0a1322;border:1px dashed #d4af37;border-radius:12px;padding:18px;text-align:center;margin:0 0 24px">{escape(v["code"])}</p>'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{"".join(rows)}</table>'
-        f'<p style="font-family:Arial,sans-serif;font-size:12px;line-height:20px;color:#64748b;margin:24px 0 0">{escape(s["note"])}</p>'
+        + (f'<p style="margin:28px 0 0;text-align:center"><a href="{escape(pdf_url)}" style="display:inline-block;background:#d4af37;color:#050b14;'
+           f'font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:14px 32px;border-radius:999px">{escape(s["pdf"])}</a></p>' if pdf_url else "")
+        + f'<p style="font-family:Arial,sans-serif;font-size:12px;line-height:20px;color:#64748b;margin:24px 0 0">{escape(s["note"])}</p>'
         f'<p style="font-family:Arial,sans-serif;font-size:13px;color:#f8fafc;margin:20px 0 0">{s["question"]}</p>'
         f'<p style="font-family:Arial,sans-serif;font-size:11px;color:#64748b;margin:28px 0 0">{escape(s["footer"])}</p>'
         '</td></tr></table></td></tr></table>'
@@ -607,9 +612,9 @@ def build_voucher_email(v: dict) -> tuple[str, str]:
     return f"Canary Foil Club — {s['subject']}", html
 
 
-async def notify_voucher_buyer(v: dict) -> bool:
+async def notify_voucher_buyer(v: dict, pdf_url: str | None = None) -> bool:
     try:
-        subject, html = build_voucher_email(v)
+        subject, html = build_voucher_email(v, pdf_url)
         email_id = await send_email(to=v["buyer_email"], subject=subject, html=html)
         logger.info(f"Voucher email sent (id={email_id}) to {v['buyer_email']} code={v['code']}")
         return True
