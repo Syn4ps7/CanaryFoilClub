@@ -45,16 +45,16 @@ const AdminLogin = ({ onSuccess }) => {
 
         <form onSubmit={submit} className="mt-8 space-y-5">
           <div>
-            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">Email</label>
+            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">Identifiant</label>
             <input
               data-testid="admin-login-email"
-              type="email"
+              type="text"
               required
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={inputCls}
-              placeholder="admin@canaryfoilclub.com"
+              placeholder="admin"
             />
           </div>
           <div>

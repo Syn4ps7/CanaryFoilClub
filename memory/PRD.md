@@ -41,6 +41,15 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Formulaire public : case « Réservation apportée par un partenaire » + nom du partenaire (FR/EN/ES)
 - Testé : testing_agent iteration_1 (backend 10/10 après fix lockout, frontend 100 %)
 
+## Implemented (2026-06) — Admin v2
+- Identifiants provisoires : `admin` / `admin` (ADMIN_EMAIL / ADMIN_PASSWORD dans backend/.env, login accepte un identifiant non-email)
+- Capacité dynamique : `settings` Mongo {boards 1-6 (défaut 3), slots_per_day 1-6 (défaut 6)} — éditable depuis le dashboard (CapacitySettings) ; occupation = sessions-planche / (planches × créneaux) ; corporate = toutes les planches × 3 créneaux
+- Email de confirmation au client (FR/EN/ES, `notify_confirmed`) envoyé quand le statut passe à « confirmed » depuis le dashboard ; flag `confirmation_email_sent` stocké et exposé
+- Page /admin/bookings : recherche (nom/email/tél/hôtel/partenaire), filtres statut + dates de session, résumé CA encaissable, export CSV (`;`, BOM, colonnes compta dont commission)
+- Page /admin/planning : grille créneaux × planches par jour, navigation date, affectation créneau (`slot`, 0 = retirer), liste « à placer », surbooking signalé
+- Layout admin avec navigation (Vue d'ensemble / Réservations / Planning), react-router `/admin/*`
+- Testé : testing_agent iteration_2 (backend 25/25, frontend 100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

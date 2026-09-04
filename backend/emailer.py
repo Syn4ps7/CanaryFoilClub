@@ -228,15 +228,63 @@ CLIENT_EXP_LABELS = {
 
 
 def build_client_confirmation_email(b) -> tuple[str, str]:
-    lang = b.lang if getattr(b, "lang", None) in CLIENT_CONFIRM else "fr"
-    s = CLIENT_CONFIRM[lang]
+    return _build_client_email(b, CLIENT_CONFIRM)
+
+
+CLIENT_CONFIRMED = {
+    "fr": {
+        "subject": "Votre vol est confirmé",
+        "title": "{name}, votre vol est confirmé.",
+        "intro": "Excellente nouvelle : votre créneau est validé. Notre équipe vous attend au camp de base mobile à Costa Adeje. Prévoyez maillot, serviette et 10 minutes d'avance — combinaison, gilet et casque radio sont fournis.",
+        "recap": "Votre réservation",
+        "lbl_experience": "Expérience",
+        "lbl_date": "Date",
+        "lbl_slot": "Créneau",
+        "lbl_participants": "Participants",
+        "note": "Le lieu exact de rendez-vous vous sera communiqué la veille par WhatsApp selon les conditions de mer.",
+        "question": 'Une question ? Notre ligne WhatsApp VIP : <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Ténérife. Cet email confirme votre réservation.",
+    },
+    "en": {
+        "subject": "Your flight is confirmed",
+        "title": "{name}, your flight is confirmed.",
+        "intro": "Great news: your slot is locked in. Our team will welcome you at the mobile base camp in Costa Adeje. Bring swimwear, a towel and arrive 10 minutes early — wetsuit, impact vest and radio helmet are provided.",
+        "recap": "Your booking",
+        "lbl_experience": "Experience",
+        "lbl_date": "Date",
+        "lbl_slot": "Time slot",
+        "lbl_participants": "Participants",
+        "note": "The exact meeting point will be sent by WhatsApp the day before, depending on sea conditions.",
+        "question": 'Questions? Our VIP WhatsApp line: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. This email confirms your booking.",
+    },
+    "es": {
+        "subject": "Tu vuelo está confirmado",
+        "title": "{name}, tu vuelo está confirmado.",
+        "intro": "Buenas noticias: tu horario está reservado. Nuestro equipo te espera en el campamento base móvil de Costa Adeje. Trae bañador, toalla y llega 10 minutos antes — neopreno, chaleco y casco con radio incluidos.",
+        "recap": "Tu reserva",
+        "lbl_experience": "Experiencia",
+        "lbl_date": "Fecha",
+        "lbl_slot": "Horario",
+        "lbl_participants": "Participantes",
+        "note": "El punto de encuentro exacto se enviará por WhatsApp el día anterior según las condiciones del mar.",
+        "question": '¿Dudas? Nuestra línea VIP de WhatsApp: <a href="tel:+34600000000" style="color:#00f0ff">+34 600 000 000</a>',
+        "footer": "Canary Foil Club — Costa Adeje, Tenerife. Este email confirma tu reserva.",
+    },
+}
+
+
+def _build_client_email(b, strings) -> tuple[str, str]:
+    lang = b.lang if getattr(b, "lang", None) in strings else "fr"
+    s = strings[lang]
     exp = CLIENT_EXP_LABELS[lang].get(b.experience, b.experience)
     subject = f"Canary Foil Club — {s['subject']}"
-    rows = "".join([
-        _row(s["lbl_experience"], escape(exp)),
-        _row(s["lbl_date"], escape(b.date)),
-        _row(s["lbl_participants"], str(b.participants)),
-    ])
+    rows = [_row(s["lbl_experience"], escape(exp)), _row(s["lbl_date"], escape(b.date))]
+    slot = getattr(b, "slot", None)
+    if slot and "lbl_slot" in s:
+        rows.append(_row(s["lbl_slot"], f"#{int(slot)}"))
+    rows.append(_row(s["lbl_participants"], str(b.participants)))
+    rows = "".join(rows)
     html = (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
         'style="background:#050b14;padding:32px 16px"><tr><td align="center">'
@@ -270,4 +318,15 @@ async def notify_client(booking) -> bool:
         return True
     except Exception as e:
         logger.error(f"Client confirmation failed for {booking.id}: {e}")
+        return False
+
+
+async def notify_confirmed(booking) -> bool:
+    try:
+        subject, html = _build_client_email(booking, CLIENT_CONFIRMED)
+        email_id = await send_email(to=booking.email, subject=subject, html=html)
+        logger.info(f"Client confirmed-email sent (id={email_id}) to {booking.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Client confirmed-email failed for {booking.id}: {e}")
         return False

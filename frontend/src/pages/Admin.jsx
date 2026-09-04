@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { adminApi, clearToken, getToken } from "@/lib/adminApi";
 import AdminLogin from "@/components/admin/AdminLogin";
+import AdminLayout from "@/components/admin/AdminLayout";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import AdminBookings from "@/components/admin/AdminBookings";
+import AdminPlanning from "@/components/admin/AdminPlanning";
 
 export default function Admin() {
   const [auth, setAuth] = useState(null);
@@ -35,5 +39,14 @@ export default function Admin() {
   }
 
   if (!auth) return <AdminLogin onSuccess={setAuth} />;
-  return <AdminDashboard admin={auth} onLogout={logout} />;
+  return (
+    <AdminLayout admin={auth} onLogout={logout}>
+      <Routes>
+        <Route index element={<AdminDashboard onLogout={logout} />} />
+        <Route path="bookings" element={<AdminBookings onLogout={logout} />} />
+        <Route path="planning" element={<AdminPlanning onLogout={logout} />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    </AdminLayout>
+  );
 }

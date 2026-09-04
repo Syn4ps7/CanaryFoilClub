@@ -23,7 +23,7 @@ const fmtDate = (d) => {
   return isNaN(dt) ? d : dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 };
 
-const BookingsTable = ({ bookings = [], onUpdate, busyId }) => (
+const BookingsTable = ({ bookings = [], onUpdate, busyId, title = "Réservations", slotsPerDay }) => (
   <motion.section
     initial={{ opacity: 0, y: 18 }}
     animate={{ opacity: 1, y: 0 }}
@@ -32,8 +32,8 @@ const BookingsTable = ({ bookings = [], onUpdate, busyId }) => (
     className="rounded-2xl border border-white/10 bg-panel/70 backdrop-blur-xl"
   >
     <div className="flex items-center justify-between px-5 sm:px-6 pt-5 sm:pt-6">
-      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">10 dernières réservations</p>
-      <p className="font-mono text-[10px] text-slate-500">{bookings.length} affichées</p>
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">{title}</p>
+      <p className="font-mono text-[10px] text-slate-500" data-testid="bookings-count">{bookings.length} affichée{bookings.length > 1 ? "s" : ""}</p>
     </div>
     <div className="mt-4 overflow-x-auto">
       <table className="w-full min-w-[820px] text-left text-sm">
@@ -63,7 +63,26 @@ const BookingsTable = ({ bookings = [], onUpdate, busyId }) => (
                 <p className="text-[11px] text-slate-500">{b.email}{b.hotel ? ` · ${b.hotel}` : ""}</p>
               </td>
               <td className="px-3 py-3.5 text-slate-300">{EXP_LABELS[b.experience] || b.experience}</td>
-              <td className="px-3 py-3.5 text-slate-300 whitespace-nowrap">{fmtDate(b.date)}</td>
+              <td className="px-3 py-3.5 text-slate-300 whitespace-nowrap">
+                {fmtDate(b.date)}
+                {slotsPerDay ? (
+                  <select
+                    data-testid={`booking-slot-select-${b.id}`}
+                    value={b.slot || 0}
+                    disabled={busyId === b.id}
+                    onChange={(e) => onUpdate(b.id, { slot: Number(e.target.value) })}
+                    className="ml-2 rounded-full border border-white/15 px-2 py-0.5 text-[10px] text-slate-300 outline-none"
+                    style={{ backgroundColor: "#0A1322" }}
+                  >
+                    <option value={0}>Créneau —</option>
+                    {[...Array(slotsPerDay)].map((_, i) => (
+                      <option key={i + 1} value={i + 1}>Créneau {i + 1}</option>
+                    ))}
+                  </select>
+                ) : (
+                  b.slot && <span className="ml-2 rounded-full border border-white/15 px-2 py-0.5 text-[10px] text-slate-400">C{b.slot}</span>
+                )}
+              </td>
               <td className="px-3 py-3.5 text-center text-slate-300">{b.participants}</td>
               <td className="px-3 py-3.5 text-right font-syne font-bold text-white">{eur(b.amount)}</td>
               <td className="px-3 py-3.5 text-center">
