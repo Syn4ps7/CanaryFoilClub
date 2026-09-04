@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Handshake, Bell, BellRing, Star, MessageSquareQuote } from "lucide-react";
+import { Handshake, Bell, BellRing, Star, MessageSquareQuote, ShieldCheck, ShieldAlert } from "lucide-react";
 import { eur } from "@/lib/adminApi";
 
 export const EXP_LABELS = {
@@ -65,6 +65,20 @@ const BookingsTable = ({ bookings = [], onUpdate, onReminder = () => {}, onRevie
               <td className="px-5 sm:px-6 py-3.5">
                 <p className="font-medium text-white">{b.name}</p>
                 <p className="text-[11px] text-slate-500">{b.email}{b.hotel ? ` · ${b.hotel}` : ""}</p>
+                {b.minor && (
+                  <button
+                    data-testid={`booking-minor-toggle-${b.id}`}
+                    onClick={() => onUpdate(b.id, { parental_auth_received: !b.parental_auth_received })}
+                    disabled={busyId === b.id}
+                    title={b.parental_auth_received ? "Autorisation parentale reçue — cliquer pour annuler" : "Mineur : autorisation parentale à récupérer — cliquer quand reçue"}
+                    className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${
+                      b.parental_auth_received ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-amber-400/50 bg-amber-400/10 text-amber-300"
+                    }`}
+                  >
+                    {b.parental_auth_received ? <ShieldCheck size={11} /> : <ShieldAlert size={11} />}
+                    {b.parental_auth_received ? "Mineur · autorisation reçue" : "Mineur · autorisation à recevoir"}
+                  </button>
+                )}
               </td>
               <td className="px-3 py-3.5 text-slate-300">{EXP_LABELS[b.experience] || b.experience}</td>
               <td className="px-3 py-3.5 text-slate-300 whitespace-nowrap">

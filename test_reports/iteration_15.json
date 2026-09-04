@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 15 (Parental authorisation) — full backend + frontend end-to-end. All 7 pytest cases pass and all UI flows verified. Backend: POST /api/booking with minor:true & minor_consent:false → 400 with French detail (contains 'autorisation parentale'); minor:true + minor_consent:true → 200 with response.minor=true, minor_consent=true, parental_auth_received=null; minor omitted → 200 with minor=false. PATCH /api/admin/bookings/{id} {parental_auth_received:true|false} → returns the flag correctly. GET /api/admin/bookings exposes minor, minor_consent, parental_auth_received fields. Frontend (FR): booking-checkbox-minor unchecked by default, booking-minor-panel absent; checking → panel appears with notice containing '14 ans' and required booking-checkbox-minor-consent. Submit with CGV checked but minor-consent unchecked is blocked by HTML5 required validation (0 POST). Checking minor-consent → submit succeeds (1 POST /api/booking, ~10s). Unchecking booking-checkbox-minor hides the panel and resets minor_consent state (verified: after re-check the consent box is unchecked). EN i18n label = 'One or more participants are minors (14 to 17 years old)'. Admin: /admin/bookings displays booking-minor-toggle-{id} amber pill 'Mineur · autorisation à recevoir' on minor rows only (non-minor rows have no such badge). Clicking triggers toast 'Réservation mise à jour' and toggles the badge to emerald 'Mineur · autorisation reçue'; clicking again reverts to amber. All 4 test bookings created were cancelled at the end (no CA pollution).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration15_minor.py",
+    "/app/test_reports/pytest/iteration15.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py L255-256: minor/minor_consent validation is atomic and returns a clear French 400 detail — good. Consider also validating minor_consent is a bool via Pydantic (already covered by BookingCreate model).",
+    "BookingModal.jsx L171: onChange resets minor_consent to false when minor is toggled — correct UX. Consent field uses HTML5 required, so browser-side blocking works even without JS toast.",
+    "BookingsTable.jsx uses emerald-400 for received / amber-400 for pending — contrast is sufficient on dark bg. Toggle button is a proper <button> with data-testid={`booking-minor-toggle-${b.id}`} — testable.",
+    "GET /api/admin/bookings returns the three new fields on every row (verified via API). No _id leakage."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration15_minor.py"],
+  "success_rate": {"backend": "100% (7/7 pytest)", "frontend": "100% (8/8 scenarios: default unchecked, panel toggle, required consent blocks submit, POST after consent, uncheck resets consent, EN label, admin amber badge presence + non-minor absence, admin toggle amber↔emerald with toast)"},
+  "test_credentials": "admin / admin",
+  "seed_data_creation": "4 bookings created against delivered@resend.dev with date 2026-10-01 during testing (TEST Iter15 x2, TEST Iter15 UI, TEST Iter15 Admin, TEST Iter15 NonMinor, TEST Iter15 Admin2). All were PATCH'd to status=cancelled at end so stats/CA are not polluted.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Set REACT_APP_BACKEND_URL env var before running pytest (it is not exported in the shell by default). Run: REACT_APP_BACKEND_URL=https://canary-foil-club.preview.emergentagent.com python -m pytest backend/tests/test_iteration15_minor.py -v. The admin BookingsTable minor badge uses classes 'amber-400/50' (pending) vs 'emerald-400/40' (received) — check for 'amber' / 'emerald' substrings, not 'green'. booking-terms-checkbox is also required to submit the booking form. Cancelling test bookings must go via PATCH /api/admin/bookings/{id} {status:'cancelled'}.",
+  "rca of the issue": "N/A — feature works as specified."
+}

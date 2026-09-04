@@ -134,6 +134,7 @@ def build_booking_email(b) -> tuple[str, str]:
         _row("Date", escape(b.date)),
         _row("Participants", str(b.participants)),
         _row("Hôtel", escape(b.hotel or "—")),
+        _row("Mineur(s)", "OUI — autorisation parentale signée à récupérer avant la session" if getattr(b, "minor", False) else "Non"),
         _row("Notes", escape(b.notes or "—")),
     ])
     html = (

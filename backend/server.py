@@ -54,6 +54,8 @@ class BookingCreate(BaseModel):
     notes: Optional[str] = None
     partner: bool = False
     partner_name: Optional[str] = Field(default=None, max_length=120)
+    minor: bool = False
+    minor_consent: bool = False
     voucher_code: Optional[str] = Field(default=None, max_length=20)
     lang: str = "fr"
 
@@ -73,6 +75,7 @@ class Booking(BookingCreate):
     review_request_sent: Optional[bool] = None
     review_request_sent_at: Optional[str] = None
     review_id: Optional[str] = None
+    parental_auth_received: Optional[bool] = None
     confirmed_at: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -167,6 +170,7 @@ class BookingUpdate(BaseModel):
     partner: Optional[bool] = None
     partner_name: Optional[str] = Field(default=None, max_length=120)
     slot: Optional[int] = Field(default=None, ge=0, le=MAX_SLOTS)
+    parental_auth_received: Optional[bool] = None
 
 
 class SettingsInput(BaseModel):
@@ -248,6 +252,8 @@ async def create_booking(input: BookingCreate):
         input.experience = "discovery"
     if input.lang not in ("fr", "en", "es"):
         input.lang = "fr"
+    if input.minor and not input.minor_consent:
+        raise HTTPException(status_code=400, detail="L'engagement à fournir l'autorisation parentale est requis pour un participant mineur")
     booking = Booking(**input.model_dump())
     if input.voucher_code:
         v = await redeem_voucher(db, input.voucher_code, booking.id)

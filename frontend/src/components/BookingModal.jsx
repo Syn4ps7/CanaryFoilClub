@@ -26,6 +26,8 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
     partner: false,
     partner_name: "",
     voucher_code: "",
+    minor: false,
+    minor_consent: false,
   });
   const [voucher, setVoucher] = useState(null);
   const [terms, setTerms] = useState(false);
@@ -60,10 +62,10 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
     }
     setSending(true);
     try {
-      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), voucher_code: form.voucher_code.trim() || undefined, lang });
+      await axios.post(`${API}/booking`, { ...form, participants: Number(form.participants), voucher_code: form.voucher_code.trim() || undefined, minor_consent: form.minor ? form.minor_consent : false, lang });
       toast.success(t.toast.success);
       onClose();
-      setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "", voucher_code: "" });
+      setForm({ name: "", email: "", phone: "", experience: "discovery", date: "", participants: 1, hotel: "", notes: "", partner: false, partner_name: "", voucher_code: "", minor: false, minor_consent: false });
       setVoucher(null);
       setTerms(false);
     } catch (err) {
@@ -159,6 +161,34 @@ const BookingModal = ({ open, preset, presetCode, onClose }) => {
                 <div>
                   <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">{t.booking.notes}</label>
                   <textarea data-testid="booking-input-notes" rows={3} value={form.notes} onChange={set("notes")} className={`${inputCls} resize-none`} />
+                </div>
+                <div className={`rounded-xl border p-4 ${form.minor ? "border-amber-400/40 bg-amber-400/5" : "border-white/10 bg-deep/60"}`}>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      data-testid="booking-checkbox-minor"
+                      type="checkbox"
+                      checked={form.minor}
+                      onChange={(e) => setForm((f) => ({ ...f, minor: e.target.checked, minor_consent: false }))}
+                      className="mt-0.5 h-4 w-4 accent-[#F59E0B]"
+                    />
+                    <span className="block text-sm text-white">{t.booking.minor}</span>
+                  </label>
+                  {form.minor && (
+                    <div className="mt-3 space-y-3" data-testid="booking-minor-panel">
+                      <p className="flex items-start gap-2 text-xs leading-relaxed text-amber-200"><AlertCircle size={14} className="mt-0.5 shrink-0" /> {t.booking.minorNotice}</p>
+                      <label className="flex cursor-pointer items-start gap-3 text-xs text-slate-200">
+                        <input
+                          data-testid="booking-checkbox-minor-consent"
+                          type="checkbox"
+                          required
+                          checked={form.minor_consent}
+                          onChange={(e) => setForm((f) => ({ ...f, minor_consent: e.target.checked }))}
+                          className="mt-0.5 h-4 w-4 accent-[#F59E0B]"
+                        />
+                        <span>{t.booking.minorConsent} <span className="text-red-300">*</span></span>
+                      </label>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400"><Gift size={11} className="text-gold" /> {t.booking.voucher}</label>

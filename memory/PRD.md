@@ -117,6 +117,11 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - Testé : testing_agent iteration_14 (frontend 7/7, 3 viewports)
 - Âge minimum passé de 16 à 14 ans dans les CGV (FR/EN/ES, article 3) — vérifié par screenshot
 
+## Implemented (2026-06) — Accord parental
+- Formulaire : case « participant(s) mineur(s) 14-17 ans » → panneau ambre (rappel autorisation parentale écrite) + case d'engagement obligatoire ; backend `minor` / `minor_consent` (400 si mineur sans engagement) ; email propriétaire ligne « Mineur(s) »
+- Admin : badge « Mineur · autorisation à recevoir / reçue » cliquable dans les tables (PATCH `parental_auth_received`)
+- Testé : testing_agent iteration_15 (backend 7/7, frontend 8/8)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)
