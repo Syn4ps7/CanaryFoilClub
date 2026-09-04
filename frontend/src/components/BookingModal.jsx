@@ -80,6 +80,7 @@ const BookingModal = ({ open, preset, onClose }) => {
           />
           <motion.aside
             data-testid="booking-modal"
+            data-lenis-prevent
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}

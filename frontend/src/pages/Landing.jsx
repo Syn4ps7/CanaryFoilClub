@@ -67,6 +67,16 @@ export default function Landing() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const lenis = window.__lenis;
+    const locked = booking.open || gift;
+    document.documentElement.style.overflow = locked ? "hidden" : "";
+    document.body.style.overflow = locked ? "hidden" : "";
+    if (!lenis) return;
+    if (locked) lenis.stop();
+    else lenis.start();
+  }, [booking.open, gift]);
+
   const openBooking = (preset = null) => setBooking({ open: true, preset });
 
   return (

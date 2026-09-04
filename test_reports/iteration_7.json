@@ -1,0 +1,31 @@
+{
+  "summary": "Focused frontend test of the modal wheel-scroll bug fix (data-lenis-prevent + lenis.stop/start). Booking form submission and modal internal scroll work, but the CORE bug fix is NOT complete: the underlying page still scrolls in the background while the user wheels over the booking-modal and gift-modal.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "BookingModal + Landing lenis effect", "issue": "CRITICAL: While booking-modal is open at 1366x650 and user scrolls with mouse wheel over the panel, the panel scrolls correctly (scrollTop 0→333) BUT window.scrollY also increases (0→3000). The page behind is scrolling under the modal. Requirement was window.scrollY to remain unchanged. lenis.stop() alone is not enough — Lenis's wheel handler still yields, and the native browser then scrolls the html/body. Need to either (a) also add overflow:hidden to body when modal open, or (b) call preventDefault on wheel events that bubble outside the [data-lenis-prevent] element, or (c) use Lenis' recommended approach of adding a wheel listener on the modal that stops propagation, or (d) simply set document.body.style.overflow='hidden' while booking.open||gift.", "selector": "[data-testid=\"booking-modal\"]", "priority": "CRITICAL"},
+      {"component": "GiftModal", "issue": "Same issue as booking-modal: while wheeling over gift-modal, window.scrollY increased from 4595 → 6132. Page scrolls behind the panel.", "selector": "[data-testid=\"gift-modal\"]", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Prevent underlying page from scrolling while any modal is open. Recommended: in Landing.jsx effect, set document.body.style.overflow = 'hidden' (and restore on close) in addition to lenis.stop(). This is the standard, robust fix and does not depend on Lenis internals.",
+    "Alternative/additional: on the modal aside, attach an onWheel handler that calls e.stopPropagation() and manually adjusts scrollTop (or rely on native overflow-y-auto) — the current data-lenis-prevent lets the modal scroll natively but does not stop the wheel event from also being handled by the browser on the underlying scroll container.",
+    "After fix, verify with viewport 1366x650: open booking-modal, page.mouse.wheel over the panel — modal.scrollTop must increase while window.scrollY must stay unchanged. Repeat for gift-modal.",
+    "Also re-test that once the modal closes, window scrolling resumes (already works, but body overflow must be reset).",
+    "The good news: modal internal scroll works, form submit is reachable and full submission succeeds (success toast 'Demande envoyée — notre équipe VIP vous recontacte sous 24h.' observed)."
+  ],
+  "critical_code_review_comments": [
+    "Landing.jsx lenis.stop()/start() effect does not block native wheel scroll on the html/body. When Lenis is stopped it no longer preventDefault()s the wheel event, so the browser's default scroll takes over. data-lenis-prevent on the aside only tells Lenis to ignore the event inside that element — it does not stop the page scroll behind. Add document.body style overflow:hidden while modal open.",
+    "Consider also locking html element (some browsers scroll html rather than body): document.documentElement.style.overflow = 'hidden'."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "40% (form submit works; scroll-behind bug remains)"},
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reproduce with viewport 1366x650, goto landing, wait 2200ms for intro, click [data-testid=hero-cta-book-button], wait 800ms, then page.mouse.move(1100,300) + page.mouse.wheel(0,600) x 6. Check both modal.scrollTop and window.scrollY. Currently window.scrollY grows by ~3000 which is the bug. Same repro for gift-modal via [data-testid=gift-cta-button]. Booking submission itself works (test email delivered@resend.dev succeeds with success toast). Mobile 390x844 test flow needs re-verification after the fix (this iteration could not open modal after prior state changes).",
+  "rca of the issue": "Lenis' smoothWheel replaces native scroll by capturing wheel events and calling preventDefault. When lenis.stop() is called, Lenis stops updating the transform but the wheel listener no longer preventDefault()s either, so the browser's native scrolling of the document takes over. data-lenis-prevent on the modal aside instructs Lenis to not treat wheel events over that element, but the wheel event still reaches the document and the browser natively scrolls the html/body underneath. Fix: while a modal is open, additionally lock body/documentElement scroll with overflow:hidden (and restore on close). This is a well-known pattern for modal accessibility and completely prevents background scroll regardless of Lenis' state."
+}

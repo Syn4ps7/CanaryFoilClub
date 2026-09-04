@@ -77,6 +77,11 @@ Site vitrine One-Page ultra-premium pour le Canary Foil Club : service exclusif 
 - GitHub : l'utilisateur doit utiliser « Save to GitHub » (dépôt Syn4ps7/CanaryFoilClub)
 - Testé : testing_agent iteration_6 (backend 23/23, frontend 100 %)
 
+## Bug fix (2026-06) — Panneau de réservation non défilable
+- Cause : Lenis interceptait la molette, le panneau latéral (overflow-y-auto) ne défilait pas jusqu'au bouton « Envoyer »
+- Fix : `data-lenis-prevent` sur booking-modal et gift-modal ; `lenis.stop()/start()` + `overflow:hidden` sur html/body pendant l'ouverture d'un panneau (Landing.jsx)
+- Testé : testing_agent iteration_7 + iteration_8 (100 %)
+
 ## Verified
 - POST /api/booking + GET /api/bookings (curl, bookings en base)
 - Alerte email : envoi test au proxy Resend → 202 + id (delivered@resend.dev) ; avec placeholder fictif → 422 "undeliverable recipient" (comportement attendu, non bloquant)

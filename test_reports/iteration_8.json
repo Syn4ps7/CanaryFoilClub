@@ -1,0 +1,14 @@
+{
+  "summary": "Retested modal scroll-behind fix at 1366x650. All 4 requested checks PASS: (1) booking-modal internal scroll works (scrollTop=333) while window.scrollY unchanged (0) during wheel over panel; body.overflow and html.overflow correctly set to 'hidden' while modal open; (2) gift-modal same behavior (scrollTop=188, window.scrollY frozen at 4631, gift-form-submit reachable); (3) after closing each modal, both html/body overflow reset to '' and page scroll via mouse wheel resumes (0 -> 500); (4) full booking submission via UI with delivered@resend.dev succeeds — modal closes and success copy ('envoyé', 'merci') is rendered.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "skipped", "frontend": "100%"},
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Scroll-lock fix in /app/frontend/src/pages/Landing.jsx (documentElement + body overflow='hidden' + lenis.stop()) is verified working for both booking-modal and gift-modal at 1366x650. Cleanup on close is correct."
+}
